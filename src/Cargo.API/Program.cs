@@ -1,8 +1,13 @@
+using System.Text;
+using Cargo.Core.Entities;
 using Cargo.Core.Interfaces;
 using Cargo.Infrastructure.Data;
 using Cargo.Infrastructure.Repositories;
 using Cargo.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using OfficeOpenXml;
 
 // Это говорит EPPlus, что мы бедные студенты и не платим за лицензию
@@ -19,7 +24,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Cargo API",
         Version = "v1",
-        Description = "B2B SaaS платформа для отслеживания грузов с multi-tenancy"
+        Description = "B2B SaaS платформа для отслеживания грузов с multi-tenancy и Telegram WebApp"
     });
 });
 
@@ -64,7 +69,55 @@ else
 builder.Services.AddDbContext<CargoDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Tenant provider (будет расширен для извлечения из HTTP-заголовка)
+// ASP.NET Core Identity
+builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
+{
+    // Password settings (для Managers, если будут)
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 8;
+    
+    // User settings
+    options.User.RequireUniqueEmail = false; // Telegram users don't have email
+    
+    // Lockout settings
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(30);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+})
+.AddEntityFrameworkStores<CargoDbContext>()
+.AddDefaultTokenProviders();
+
+// JWT Authentication
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] 
+    ?? throw new InvalidOperationException("Jwt:SecretKey is not configured");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CargoAPI";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "CargoClient";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+builder.Services.AddAuthorization();
+
+// Tenant provider (будет расширен для извлечения из JWT claims)
 builder.Services.AddScoped<ITenantProvider, TenantProvider>();
 
 // Unit of Work
@@ -76,9 +129,8 @@ builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 
 // Services
 builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
-
-// Services
-builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
+builder.Services.AddScoped<ITelegramAuthService, TelegramAuthService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
 
 // CORS configuration
 builder.Services.AddCors(options =>
@@ -93,12 +145,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Auto-apply migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<Cargo.Infrastructure.Data.CargoDbContext>();
+        var context = services.GetRequiredService<CargoDbContext>();
         var logger = services.GetRequiredService<ILogger<Program>>();
         
         // Применяем миграции
@@ -155,6 +208,8 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
+// Authentication & Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

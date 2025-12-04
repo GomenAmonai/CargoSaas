@@ -1,3 +1,5 @@
+using Cargo.API.DTOs;
+using Cargo.Core.Models;
 using Cargo.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 

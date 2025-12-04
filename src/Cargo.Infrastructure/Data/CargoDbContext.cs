@@ -1,13 +1,15 @@
 using Cargo.Core.Entities;
+using Cargo.Core.Enums;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace Cargo.Infrastructure.Data;
 
 /// <summary>
-/// Контекст базы данных для Cargo с поддержкой multi-tenancy
+/// Контекст базы данных для Cargo с поддержкой multi-tenancy и ASP.NET Core Identity
 /// </summary>
-public class CargoDbContext : DbContext
+public class CargoDbContext : IdentityDbContext<AppUser>
 {
     private readonly Guid _currentTenantId;
 
@@ -27,6 +29,7 @@ public class CargoDbContext : DbContext
         // Конфигурация сущностей
         ConfigureTenant(modelBuilder);
         ConfigureTrack(modelBuilder);
+        ConfigureAppUser(modelBuilder);
 
         // Применение глобального фильтра для multi-tenancy
         ApplyGlobalQueryFilters(modelBuilder);
@@ -123,11 +126,57 @@ public class CargoDbContext : DbContext
     }
 
     /// <summary>
+    /// Конфигурация сущности AppUser (расширение Identity)
+    /// </summary>
+    private void ConfigureAppUser(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AppUser>(entity =>
+        {
+            // Индекс для TelegramId (уникальный в рамках тенанта)
+            entity.HasIndex(u => new { u.TenantId, u.TelegramId })
+                .IsUnique()
+                .HasFilter("[TelegramId] IS NOT NULL");
+
+            // Индекс для TelegramId отдельно (для быстрого поиска)
+            entity.HasIndex(u => u.TelegramId)
+                .HasFilter("[TelegramId] IS NOT NULL");
+
+            entity.Property(u => u.FirstName)
+                .HasMaxLength(100);
+
+            entity.Property(u => u.LastName)
+                .HasMaxLength(100);
+
+            entity.Property(u => u.PhotoUrl)
+                .HasMaxLength(500);
+
+            entity.Property(u => u.LanguageCode)
+                .HasMaxLength(10);
+
+            entity.Property(u => u.Role)
+                .IsRequired()
+                .HasConversion<int>();
+
+            entity.Property(u => u.CreatedAt)
+                .IsRequired();
+
+            entity.Property(u => u.UpdatedAt)
+                .IsRequired();
+
+            // Связь с Tenant
+            entity.HasOne(u => u.Tenant)
+                .WithMany()
+                .HasForeignKey(u => u.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    /// <summary>
     /// Применение глобального фильтра для multi-tenancy
     /// </summary>
     private void ApplyGlobalQueryFilters(ModelBuilder modelBuilder)
     {
-        // Применяем фильтр ко всем сущностям, наследующим BaseEntity (кроме Tenant)
+        // Фильтр для BaseEntity (Track и др.)
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType) && 
@@ -154,6 +203,11 @@ public class CargoDbContext : DbContext
                 }
             }
         }
+
+        // Фильтр для AppUser (пользователи видят только своих тенантов)
+        // SystemAdmin (TenantId == null) видят всех
+        modelBuilder.Entity<AppUser>().HasQueryFilter(u => 
+            u.TenantId == null || u.TenantId == _currentTenantId);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

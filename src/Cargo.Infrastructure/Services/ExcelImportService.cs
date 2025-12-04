@@ -1,5 +1,6 @@
 using Cargo.Core.Entities;
 using Cargo.Core.Interfaces;
+using Cargo.Core.Models;
 using Cargo.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,9 +20,6 @@ public class ExcelImportService : IExcelImportService
     {
         _context = context;
         _logger = logger;
-        
-        // Устанавливаем лицензию EPPlus (некоммерческая)
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
     }
 
     public async Task<ImportResultDto> ImportTracksAsync(Stream fileStream, CancellationToken cancellationToken = default)
@@ -30,12 +28,15 @@ public class ExcelImportService : IExcelImportService
 
         try
         {
+            // Устанавливаем лицензию EPPlus для некоммерческого использования
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            
             using var package = new ExcelPackage(fileStream);
             var worksheet = package.Workbook.Worksheets.FirstOrDefault();
 
             if (worksheet == null)
             {
-                result.Errors.Add(new ImportError
+                result.Errors.Add(new ImportErrorDto
                 {
                     RowNumber = 0,
                     ErrorMessage = "Excel файл не содержит листов"
@@ -48,7 +49,7 @@ public class ExcelImportService : IExcelImportService
 
             if (rowCount <= 1)
             {
-                result.Errors.Add(new ImportError
+                result.Errors.Add(new ImportErrorDto
                 {
                     RowNumber = 0,
                     ErrorMessage = "Excel файл пустой или содержит только заголовки"
@@ -75,7 +76,7 @@ public class ExcelImportService : IExcelImportService
                     // Валидация обязательных полей
                     if (string.IsNullOrEmpty(trackingNumber))
                     {
-                        result.Errors.Add(new ImportError
+                        result.Errors.Add(new ImportErrorDto
                         {
                             RowNumber = row,
                             ErrorMessage = "TrackingNumber обязателен",
@@ -86,7 +87,7 @@ public class ExcelImportService : IExcelImportService
 
                     if (string.IsNullOrEmpty(clientCode))
                     {
-                        result.Errors.Add(new ImportError
+                        result.Errors.Add(new ImportErrorDto
                         {
                             RowNumber = row,
                             ErrorMessage = "ClientCode обязателен",
@@ -145,7 +146,7 @@ public class ExcelImportService : IExcelImportService
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Ошибка обработки строки {Row}", row);
-                    result.Errors.Add(new ImportError
+                    result.Errors.Add(new ImportErrorDto
                     {
                         RowNumber = row,
                         ErrorMessage = $"Ошибка обработки: {ex.Message}"
@@ -163,7 +164,7 @@ public class ExcelImportService : IExcelImportService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Критическая ошибка при импорте Excel файла");
-            result.Errors.Add(new ImportError
+            result.Errors.Add(new ImportErrorDto
             {
                 RowNumber = 0,
                 ErrorMessage = $"Критическая ошибка: {ex.Message}"

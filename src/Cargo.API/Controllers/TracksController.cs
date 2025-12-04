@@ -1,6 +1,7 @@
 using Cargo.API.DTOs;
 using Cargo.Core.Entities;
 using Cargo.Core.Interfaces;
+using Cargo.Core.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cargo.API.Controllers;
@@ -14,11 +15,16 @@ namespace Cargo.API.Controllers;
 public class TracksController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IExcelImportService _excelImportService;
     private readonly ILogger<TracksController> _logger;
 
-    public TracksController(IUnitOfWork unitOfWork, ILogger<TracksController> logger)
+    public TracksController(
+        IUnitOfWork unitOfWork, 
+        IExcelImportService excelImportService,
+        ILogger<TracksController> logger)
     {
         _unitOfWork = unitOfWork;
+        _excelImportService = excelImportService;
         _logger = logger;
     }
 
@@ -198,6 +204,76 @@ public class TracksController : ControllerBase
         _logger.LogInformation("Удалён трек: {TrackId}", id);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Импортировать треки из Excel файла
+    /// </summary>
+    /// <param name="file">Excel файл (.xlsx)</param>
+    /// <param name="cancellationToken">Токен отмены</param>
+    /// <returns>Результат импорта</returns>
+    [HttpPost("import")]
+    [ProducesResponseType(typeof(ImportResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ImportResultDto>> ImportFromExcel(
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        // Валидация файла
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "Файл не загружен или пуст" });
+        }
+
+        // Проверка расширения файла
+        var allowedExtensions = new[] { ".xlsx", ".xls" };
+        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        
+        if (!allowedExtensions.Contains(fileExtension))
+        {
+            return BadRequest(new { message = "Неподдерживаемый формат файла. Используйте .xlsx или .xls" });
+        }
+
+        // Проверка размера файла (макс 10MB)
+        const long maxFileSize = 10 * 1024 * 1024; // 10MB
+        if (file.Length > maxFileSize)
+        {
+            return BadRequest(new { message = "Файл слишком большой. Максимальный размер: 10MB" });
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var result = await _excelImportService.ImportTracksAsync(stream, cancellationToken);
+
+            var resultDto = new ImportResultDto
+            {
+                TotalProcessed = result.TotalProcessed,
+                SuccessCount = result.SuccessCount,
+                Errors = result.Errors.Select(e => new ImportErrorDto
+                {
+                    RowNumber = e.RowNumber,
+                    ErrorMessage = e.ErrorMessage,
+                    TrackingNumber = e.TrackingNumber
+                }).ToList()
+            };
+
+            _logger.LogInformation(
+                "Импорт завершен: {SuccessCount}/{TotalProcessed} успешно, {ErrorCount} ошибок",
+                result.SuccessCount, result.TotalProcessed, result.Errors.Count);
+
+            return Ok(resultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при импорте Excel файла");
+            
+            return BadRequest(new 
+            { 
+                message = "Ошибка обработки файла",
+                details = ex.Message 
+            });
+        }
     }
 
     private static TrackDto MapToDto(Track track)
