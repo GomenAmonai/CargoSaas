@@ -3,6 +3,10 @@ using Cargo.Infrastructure.Data;
 using Cargo.Infrastructure.Repositories;
 using Cargo.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
+
+// Это говорит EPPlus, что мы бедные студенты и не платим за лицензию
+OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,6 +77,9 @@ builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 // Services
 builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
 
+// Services
+builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
+
 // CORS configuration
 builder.Services.AddCors(options =>
 {
@@ -91,8 +98,36 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<Cargo.Infrastructure.Data.CargoDbContext>(); // Проверь namespace контекста!
-        context.Database.Migrate(); // Это применит все миграции к базе
+        var context = services.GetRequiredService<Cargo.Infrastructure.Data.CargoDbContext>();
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        
+        // Применяем миграции
+        context.Database.Migrate();
+        logger.LogInformation("Database migrations applied successfully");
+        
+        // === SEED: Создаем тестового тенанта для MVP ===
+        var mockTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        if (!context.Tenants.Any(t => t.Id == mockTenantId))
+        {
+            context.Tenants.Add(new Cargo.Core.Entities.Tenant 
+            { 
+                Id = mockTenantId,
+                TenantId = mockTenantId, // Сам себе тенант
+                TenantCode = "TEST",
+                CompanyName = "Test Cargo Company",
+                ContactEmail = "test@cargo.com",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+            context.SaveChanges();
+            logger.LogInformation("Test tenant created with ID: {TenantId}", mockTenantId);
+        }
+        else
+        {
+            logger.LogInformation("Test tenant already exists");
+        }
+        // === END SEED ===
     }
     catch (Exception ex)
     {
