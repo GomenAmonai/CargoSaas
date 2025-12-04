@@ -29,8 +29,7 @@ FROM nginx:alpine
 # Копируем собранные файлы из builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Копируем nginx конфигурацию для SPA (React Router)
-# Railway ожидает порт 8080 по умолчанию
+# Создаем nginx конфигурацию для SPA на порту 8080
 RUN echo 'server { \
     listen 8080; \
     server_name _; \
@@ -46,4 +45,3 @@ EXPOSE 8080
 
 # Запускаем nginx
 CMD ["nginx", "-g", "daemon off;"]
-
