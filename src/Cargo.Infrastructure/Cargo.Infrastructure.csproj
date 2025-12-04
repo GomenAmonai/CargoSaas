@@ -19,10 +19,6 @@
     <ProjectReference Include="..\Cargo.Core\Cargo.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="Migrations\**\*.cs" />
-  </ItemGroup>
-
 </Project>
 
 
