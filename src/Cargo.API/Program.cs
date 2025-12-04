@@ -1,6 +1,7 @@
 using Cargo.Core.Interfaces;
 using Cargo.Infrastructure.Data;
 using Cargo.Infrastructure.Repositories;
+using Cargo.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -68,6 +69,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // Repositories
 builder.Services.AddScoped<ITrackRepository, TrackRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+
+// Services
+builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
 
 // CORS configuration
 builder.Services.AddCors(options =>
