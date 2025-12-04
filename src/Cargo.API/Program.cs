@@ -19,7 +19,52 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Database configuration
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Поддержка Railway DATABASE_URL и локальной разработки
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+string connectionString;
+
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    // Railway предоставляет DATABASE_URL в формате:
+    // postgresql://user:password@host:port/database
+    try
+    {
+        var databaseUri = new Uri(databaseUrl);
+        var userInfo = databaseUri.UserInfo.Split(':', 2); // Ограничиваем до 2 частей для поддержки ':' в пароле
+        
+        // Валидация: проверяем что есть и username, и password
+        if (userInfo.Length < 2)
+        {
+            throw new InvalidOperationException(
+                "DATABASE_URL is malformed: missing username or password. " +
+                "Expected format: postgresql://user:password@host:port/database");
+        }
+        
+        var username = userInfo[0];
+        var password = userInfo[1];
+        
+        connectionString = $"Host={databaseUri.Host};" +
+                          $"Port={databaseUri.Port};" +
+                          $"Database={databaseUri.LocalPath.TrimStart('/')};" +
+                          $"Username={username};" +
+                          $"Password={password};" +
+                          $"SSL Mode=Require;" +
+                          $"Trust Server Certificate=true";
+    }
+    catch (UriFormatException ex)
+    {
+        throw new InvalidOperationException(
+            "DATABASE_URL is malformed. Expected format: postgresql://user:password@host:port/database", 
+            ex);
+    }
+}
+else
+{
+    // Локальная разработка или custom connection string
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+}
+
 builder.Services.AddDbContext<CargoDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -51,8 +96,8 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<Cargo.Infrastructure.Data.CargoDbContext>(); // Проверь namespace контекста!
-        context.Database.Migrate(); // Это применит все миграции к базе
+        var context = services.GetRequiredService<CargoDbContext>();
+        context.Database.Migrate(); // Автоматическое применение миграций
     }
     catch (Exception ex)
     {
