@@ -117,8 +117,11 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Tenant provider (будет расширен для извлечения из JWT claims)
-builder.Services.AddScoped<ITenantProvider, TenantProvider>();
+// HttpContextAccessor для доступа к HttpContext в сервисах
+builder.Services.AddHttpContextAccessor();
+
+// Tenant provider - извлекает TenantId из JWT claims
+builder.Services.AddScoped<ITenantProvider, HttpContextTenantProvider>();
 
 // Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
