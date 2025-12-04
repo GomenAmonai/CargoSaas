@@ -47,3 +47,4 @@ public class TenantRepository : Repository<Tenant>, ITenantRepository
     }
 }
 
+

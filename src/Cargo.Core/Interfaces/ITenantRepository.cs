@@ -18,3 +18,4 @@ public interface ITenantRepository : IRepository<Tenant>
     Task<IEnumerable<Tenant>> GetActivTenantsAsync(CancellationToken cancellationToken = default);
 }
 
+

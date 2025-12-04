@@ -52,3 +52,4 @@ public interface IRepository<TEntity> where TEntity : BaseEntity
     Task<int> CountAsync(Expression<Func<TEntity, bool>>? predicate = null, CancellationToken cancellationToken = default);
 }
 
+

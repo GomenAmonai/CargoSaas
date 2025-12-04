@@ -1,0 +1,45 @@
+name: Railway Deploy
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Test
+      run: dotnet test --no-build --verbosity normal --configuration Release
+      continue-on-error: true  # Пока нет тестов, не падать
+    
+    - name: Publish
+      run: dotnet publish src/Cargo.API/Cargo.API.csproj -c Release -o ./publish
+    
+    - name: Check for sensitive data
+      run: |
+        echo "Checking for sensitive data..."
+        if grep -r "password.*=.*[^placeholder]" src/ --include="*.json" --include="*.cs"; then
+          echo "Warning: Possible hardcoded passwords found!"
+        fi
+        echo "Check complete"
+
+  # Railway будет автоматически деплоить при push в main
+  # Этот job только для проверки сборки
+
+

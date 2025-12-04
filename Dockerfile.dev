@@ -1,0 +1,29 @@
+# Dockerfile для разработки с hot reload
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS development
+WORKDIR /app
+
+# Копируем файлы проектов
+COPY ["Cargo.Solution.sln", "./"]
+COPY ["src/Cargo.API/Cargo.API.csproj", "src/Cargo.API/"]
+COPY ["src/Cargo.Core/Cargo.Core.csproj", "src/Cargo.Core/"]
+COPY ["src/Cargo.Infrastructure/Cargo.Infrastructure.csproj", "src/Cargo.Infrastructure/"]
+
+# Восстанавливаем зависимости
+RUN dotnet restore "Cargo.Solution.sln"
+
+# Копируем исходный код
+COPY . .
+
+# Устанавливаем dotnet-ef для миграций
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+WORKDIR /app/src/Cargo.API
+
+# Открываем порт
+EXPOSE 8080
+
+# Запускаем с hot reload
+CMD ["dotnet", "watch", "run", "--urls", "http://+:8080"]
+
+

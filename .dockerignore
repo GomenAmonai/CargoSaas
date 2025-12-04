@@ -1,0 +1,78 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+MIGRATION_GUIDE.md
+QUICK_START.md
+ARCHITECTURE.md
+PROJECT_STRUCTURE.txt
+*.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Build results
+**/bin/
+**/obj/
+**/out/
+**/TestResults/
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# Test Coverage
+coverage/
+*.coverage
+*.coveragexml
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+*.swp
+*.swo
+*~
+
+# Node (если будет фронтенд)
+node_modules/
+npm-debug.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.mdf
+*.ldf
+
+# Migrations (опционально - если не хотите включать в образ)
+# **/Migrations/
+
+

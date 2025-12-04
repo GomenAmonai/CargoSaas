@@ -374,3 +374,14 @@ FodyWeavers.xsd
 # User-specific files
 launchSettings.json
 
+# Docker & Environment
+.env
+.env.local
+.env.production
+docker-compose.override.yml
+
+# Database backups
+*.sql
+*.dump
+backup_*
+

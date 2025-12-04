@@ -11,7 +11,7 @@
 ### Шаг 1: Установка зависимостей
 
 ```bash
-cd /Users/daniillednik/CargoSaas
+cd /path/to/CargoSaas
 dotnet restore
 ```
 

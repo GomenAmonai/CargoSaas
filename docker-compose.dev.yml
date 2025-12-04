@@ -1,0 +1,77 @@
+# Docker Compose для разработки (Development)
+version: '3.8'
+
+services:
+  # PostgreSQL Database для разработки
+  postgres-dev:
+    image: postgres:16-alpine
+    container_name: cargo-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cargo_db_dev
+      POSTGRES_USER: cargo_dev
+      POSTGRES_PASSWORD: dev_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Другой порт, чтобы не конфликтовать с локальным PostgreSQL
+    networks:
+      - cargo-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cargo_dev -d cargo_db_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Cargo API для разработки (с hot reload)
+  cargo-api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cargo-api-dev
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres-dev;Port=5432;Database=cargo_db_dev;Username=cargo_dev;Password=dev_password
+      - Logging__LogLevel__Default=Debug
+      - Logging__LogLevel__Microsoft.AspNetCore=Information
+      - Logging__LogLevel__Microsoft.EntityFrameworkCore=Information
+    ports:
+      - "5000:8080"
+    volumes:
+      - ./src:/app/src:ro  # Read-only mount для hot reload
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    networks:
+      - cargo-dev-network
+
+  # pgAdmin для разработки
+  pgadmin-dev:
+    image: dpage/pgadmin4:latest
+    container_name: cargo-pgadmin-dev
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: dev@cargo.local
+      PGADMIN_DEFAULT_PASSWORD: dev
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5051:80"
+    volumes:
+      - pgadmin_dev_data:/var/lib/pgadmin
+    networks:
+      - cargo-dev-network
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  pgadmin_dev_data:
+    driver: local
+
+networks:
+  cargo-dev-network:
+    driver: bridge
+
+

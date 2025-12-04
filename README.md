@@ -168,6 +168,52 @@ Swagger UI: `https://localhost:5001/swagger`
 - UpdatedAt (timestamp, nullable)
 ```
 
+## 🐳 Docker Deployment
+
+Проект полностью поддерживает Docker и Docker Compose для быстрого деплоя.
+
+### Быстрый запуск с Docker
+
+```bash
+# 1. Создайте .env файл из примера
+cp env.example.txt .env
+
+# 2. Отредактируйте .env и установите пароли
+nano .env
+
+# 3. Запустите весь стек (API + PostgreSQL)
+docker-compose up -d
+
+# 4. API доступен на http://localhost:8080/swagger
+```
+
+### Docker файлы
+
+- `Dockerfile` - Production образ (multi-stage build)
+- `Dockerfile.dev` - Development образ с hot reload
+- `docker-compose.yml` - Production стек (API + PostgreSQL + pgAdmin)
+- `docker-compose.dev.yml` - Development стек
+- `.dockerignore` - Исключения для Docker
+- `DOCKER_GUIDE.md` - Детальная документация по Docker
+
+### Основные команды
+
+```bash
+# Запуск
+docker-compose up -d
+
+# Логи
+docker-compose logs -f cargo-api
+
+# Остановка
+docker-compose down
+
+# Пересборка
+docker-compose up -d --build
+```
+
+Подробнее см. [DOCKER_GUIDE.md](DOCKER_GUIDE.md)
+
 ## 🔐 Безопасность (TODO)
 
 В текущей версии аутентификация и авторизация **не реализованы**. 
@@ -240,7 +286,7 @@ dotnet ef migrations remove --project src/Cargo.Infrastructure --startup-project
 - [ ] Реализовать поиск и фильтрацию
 - [ ] Добавить валидацию с FluentValidation
 - [ ] Настроить CI/CD
-- [ ] Добавить Docker-контейнеризацию
+- [x] Добавить Docker-контейнеризацию ✅
 - [ ] Реализовать кэширование (Redis)
 - [ ] Добавить event sourcing для истории изменений треков
 

@@ -19,7 +19,32 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Database configuration
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Поддержка Railway DATABASE_URL и локальной разработки
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+string connectionString;
+
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    // Railway предоставляет DATABASE_URL в формате:
+    // postgresql://user:password@host:port/database
+    var databaseUri = new Uri(databaseUrl);
+    var userInfo = databaseUri.UserInfo.Split(':');
+    
+    connectionString = $"Host={databaseUri.Host};" +
+                      $"Port={databaseUri.Port};" +
+                      $"Database={databaseUri.LocalPath.TrimStart('/')};" +
+                      $"Username={userInfo[0]};" +
+                      $"Password={userInfo[1]};" +
+                      $"SSL Mode=Require;" +
+                      $"Trust Server Certificate=true";
+}
+else
+{
+    // Локальная разработка или custom connection string
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+}
+
 builder.Services.AddDbContext<CargoDbContext>(options =>
     options.UseNpgsql(connectionString));
 
