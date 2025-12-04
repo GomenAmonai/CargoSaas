@@ -98,10 +98,18 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline
+// Swagger нужен всегда, пока мы тестируем
+app.UseSwagger();
+app.UseSwaggerUI(c => 
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Cargo API V1");
+    c.RoutePrefix = string.Empty; // Чтобы открывался сразу на корневом домене
+});
+
+// А вот DeveloperExceptionPage - только в деве
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseDeveloperExceptionPage();
 }
 
 app.UseHttpsRedirection();
