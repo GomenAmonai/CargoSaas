@@ -37,8 +37,7 @@ RUN addgroup --gid 1000 appuser && \
     adduser --uid 1000 --gid 1000 --disabled-password --gecos "" appuser
 
 # Устанавливаем переменные окружения
-ENV ASPNETCORE_URLS=http://+:8080 \
-    ASPNETCORE_ENVIRONMENT=Production \
+ENV ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 # Копируем опубликованное приложение из стадии publish
@@ -50,14 +49,16 @@ RUN chown -R appuser:appuser /app
 # Переключаемся на непривилегированного пользователя
 USER appuser
 
-# Открываем порт
+# Открываем порт (Railway использует $PORT)
 EXPOSE 8080
+ENV PORT=8080
 
 # Healthcheck для проверки состояния контейнера
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl --fail http://localhost:8080/health || exit 1
 
 # Точка входа в приложение
-ENTRYPOINT ["dotnet", "Cargo.API.dll"]
+# Railway устанавливает $PORT, используем его
+CMD ASPNETCORE_URLS=http://*:${PORT:-8080} dotnet Cargo.API.dll
 
 
