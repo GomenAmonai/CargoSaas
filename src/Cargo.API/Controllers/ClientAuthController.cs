@@ -77,7 +77,10 @@ public class ClientAuthController : ControllerBase
                 telegramUser.Id, telegramUser.Username);
 
             // Ищем пользователя по TelegramId
+            // ВАЖНО: IgnoreQueryFilters() т.к. при логине у пользователя еще нет токена,
+            // и HttpContextTenantProvider вернет Guid.Empty, что не позволит найти юзера
             var user = await _userManager.Users
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(u => u.TelegramId == telegramUser.Id, cancellationToken);
             
             var isNewUser = user == null;
