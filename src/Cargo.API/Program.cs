@@ -19,50 +19,41 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Database configuration
-// Поддержка Railway DATABASE_URL и локальной разработки
+// Railway предоставляет DATABASE_URL, локально используем appsettings.json
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 string connectionString;
 
 if (!string.IsNullOrEmpty(databaseUrl))
 {
-    // Railway предоставляет DATABASE_URL в формате:
-    // postgresql://user:password@host:port/database
+    // Railway DATABASE_URL формат: postgresql://user:password@host:port/database
     try
     {
         var databaseUri = new Uri(databaseUrl);
-        var userInfo = databaseUri.UserInfo.Split(':', 2); // Ограничиваем до 2 частей для поддержки ':' в пароле
+        var userInfo = databaseUri.UserInfo.Split(':', 2);
         
-        // Валидация: проверяем что есть и username, и password
         if (userInfo.Length < 2)
         {
-            throw new InvalidOperationException(
-                "DATABASE_URL is malformed: missing username or password. " +
-                "Expected format: postgresql://user:password@host:port/database");
+            throw new InvalidOperationException("DATABASE_URL is malformed: missing username or password");
         }
-        
-        var username = userInfo[0];
-        var password = userInfo[1];
         
         connectionString = $"Host={databaseUri.Host};" +
                           $"Port={databaseUri.Port};" +
                           $"Database={databaseUri.LocalPath.TrimStart('/')};" +
-                          $"Username={username};" +
-                          $"Password={password};" +
+                          $"Username={userInfo[0]};" +
+                          $"Password={userInfo[1]};" +
                           $"SSL Mode=Require;" +
                           $"Trust Server Certificate=true";
     }
-    catch (UriFormatException ex)
+    catch (Exception ex)
     {
-        throw new InvalidOperationException(
-            "DATABASE_URL is malformed. Expected format: postgresql://user:password@host:port/database", 
-            ex);
+        throw new InvalidOperationException("Failed to parse DATABASE_URL", ex);
     }
 }
 else
 {
-    // Локальная разработка или custom connection string
+    // Локальная разработка - используем appsettings.json
     connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        ?? throw new InvalidOperationException("Connection string not found");
 }
 
 builder.Services.AddDbContext<CargoDbContext>(options =>
@@ -96,8 +87,8 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<CargoDbContext>();
-        context.Database.Migrate(); // Автоматическое применение миграций
+        var context = services.GetRequiredService<Cargo.Infrastructure.Data.CargoDbContext>(); // Проверь namespace контекста!
+        context.Database.Migrate(); // Это применит все миграции к базе
     }
     catch (Exception ex)
     {
