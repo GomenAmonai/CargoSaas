@@ -135,6 +135,9 @@ builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
 builder.Services.AddScoped<ITelegramAuthService, TelegramAuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
+// Hosted Services (Background Tasks)
+builder.Services.AddHostedService<TelegramBotBackgroundService>();
+
 // CORS configuration
 builder.Services.AddCors(options =>
 {
