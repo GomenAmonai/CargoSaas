@@ -1,0 +1,319 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        CARGO.SOLUTION - СТРУКТУРА ПРОЕКТА                     ║
+║                           B2B SaaS Platform для грузоперевозок                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📁 CargoSaas/
+│
+├── 📄 Cargo.Solution.sln                  # Solution файл (3 проекта)
+├── 📄 .gitignore                          # Git ignore для .NET
+├── 📘 README.md                           # Основная документация
+├── 📘 QUICK_START.md                      # Инструкции по быстрому запуску
+├── 📘 MIGRATION_GUIDE.md                  # Руководство по EF Core миграциям
+├── 📘 ARCHITECTURE.md                     # Детальное описание архитектуры
+└── 📘 PROJECT_STRUCTURE.txt               # Этот файл
+│
+└── 📁 src/                                # Исходный код
+    │
+    ├── 📁 Cargo.Core/                     # ⚙️ DOMAIN LAYER (Бизнес-логика)
+    │   ├── 📄 Cargo.Core.csproj           # Project file (.NET 8)
+    │   │
+    │   ├── 📁 Entities/                   # Доменные сущности
+    │   │   ├── 📄 BaseEntity.cs           # Базовый класс (Id, TenantId, даты)
+    │   │   ├── 📄 Tenant.cs               # Сущность тенанта (компания)
+    │   │   └── 📄 Track.cs                # Сущность трека (посылка) + TrackStatus enum
+    │   │
+    │   └── 📁 Interfaces/                 # Интерфейсы (контракты)
+    │       ├── 📄 IRepository.cs          # Базовый репозиторий<TEntity>
+    │       ├── 📄 ITenantRepository.cs    # Репозиторий для Tenant
+    │       ├── 📄 ITrackRepository.cs     # Репозиторий для Track
+    │       └── 📄 IUnitOfWork.cs          # Unit of Work паттерн
+    │
+    ├── 📁 Cargo.Infrastructure/           # 🗄️ DATA ACCESS LAYER
+    │   ├── 📄 Cargo.Infrastructure.csproj # Project file
+    │   │                                  # Dependencies: EF Core, Npgsql
+    │   │
+    │   ├── 📁 Data/                       # DbContext и конфигурации
+    │   │   ├── 📄 CargoDbContext.cs       # Главный DbContext
+    │   │   │                              #   - Global Query Filters (TenantId)
+    │   │   │                              #   - Конфигурация таблиц
+    │   │   │                              #   - Автопроставление TenantId
+    │   │   ├── 📄 ITenantProvider.cs      # Интерфейс провайдера тенанта
+    │   │   └── 📄 TenantProvider.cs       # Реализация (будет заменена на HTTP)
+    │   │
+    │   └── 📁 Repositories/               # Реализации репозиториев
+    │       ├── 📄 Repository.cs           # Базовая реализация IRepository<T>
+    │       ├── 📄 TenantRepository.cs     # Реализация ITenantRepository
+    │       ├── 📄 TrackRepository.cs      # Реализация ITrackRepository
+    │       └── 📄 UnitOfWork.cs           # Реализация IUnitOfWork
+    │
+    └── 📁 Cargo.API/                      # 🌐 PRESENTATION LAYER (REST API)
+        ├── 📄 Cargo.API.csproj            # Project file
+        │                                  # Dependencies: Swashbuckle (Swagger)
+        ├── 📄 Program.cs                  # Точка входа, DI Container, Middleware
+        ├── 📄 appsettings.json            # Конфигурация (connection string)
+        ├── 📄 appsettings.Development.json# Dev настройки
+        │
+        ├── 📁 Properties/
+        │   └── 📄 launchSettings.json     # Настройки запуска (порты, HTTPS)
+        │
+        ├── 📁 Controllers/                # REST API контроллеры
+        │   ├── 📄 TenantsController.cs    # CRUD для тенантов
+        │   │                              #   GET /api/tenants
+        │   │                              #   GET /api/tenants/{id}
+        │   │                              #   POST /api/tenants
+        │   │                              #   PUT /api/tenants/{id}
+        │   │                              #   DELETE /api/tenants/{id}
+        │   │
+        │   └── 📄 TracksController.cs     # CRUD для треков
+        │                                  #   GET /api/tracks
+        │                                  #   GET /api/tracks/{id}
+        │                                  #   GET /api/tracks/by-tracking-number/{number}
+        │                                  #   GET /api/tracks/by-client/{code}
+        │                                  #   GET /api/tracks/by-status/{status}
+        │                                  #   POST /api/tracks
+        │                                  #   PUT /api/tracks/{id}
+        │                                  #   DELETE /api/tracks/{id}
+        │
+        └── 📁 DTOs/                       # Data Transfer Objects
+            ├── 📄 TenantDto.cs            # TenantDto, CreateTenantDto, UpdateTenantDto
+            └── 📄 TrackDto.cs             # TrackDto, CreateTrackDto, UpdateTrackDto
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              ЗАВИСИМОСТИ ПРОЕКТОВ                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────┐
+│   Cargo.Core    │  ← Никаких зависимостей (только .NET 8)
+│   (Interfaces)  │
+└────────┬────────┘
+         │
+         │ depends on
+         │
+┌────────▼────────┐
+│Cargo.Infrastruc-│  ← EF Core, Npgsql
+│    ture         │  ← Cargo.Core (reference)
+│(Implementations)│
+└────────┬────────┘
+         │
+         │ depends on
+         │
+┌────────▼────────┐
+│   Cargo.API     │  ← Swashbuckle (Swagger)
+│  (Controllers)  │  ← Cargo.Core (reference)
+│                 │  ← Cargo.Infrastructure (reference)
+└─────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                            ТЕХНОЛОГИЧЕСКИЙ СТЕК                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+🔹 .NET 8.0                         - Основной фреймворк
+🔹 ASP.NET Core Web API             - REST API
+🔹 Entity Framework Core 8.0        - ORM для работы с БД
+🔹 PostgreSQL 14+                   - Реляционная база данных
+🔹 Npgsql                           - PostgreSQL provider для EF Core
+🔹 Swashbuckle.AspNetCore           - Swagger/OpenAPI документация
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              КЛЮЧЕВЫЕ ПАТТЕРНЫ                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+✓ Clean Architecture                - Разделение на слои (Core/Infrastructure/API)
+✓ Repository Pattern                - Абстракция доступа к данным
+✓ Unit of Work Pattern              - Управление транзакциями
+✓ Dependency Injection              - Инверсия зависимостей (DI Container)
+✓ Multi-Tenancy                     - Изоляция данных через TenantId
+✓ DTO Pattern                       - Разделение доменных моделей и API моделей
+✓ Async/Await                       - Асинхронное программирование
+✓ RESTful API                       - HTTP методы, статус-коды, ресурсы
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                            MULTI-TENANCY ПОДХОД                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Подход: Shared Database, Separate Rows (колонка TenantId)
+
+┌─────────────────────────────────────────────────────────────┐
+│ PostgreSQL Database: cargo_db                               │
+│                                                             │
+│  ┌─────────────────────────────────────────┐               │
+│  │ Table: Tracks                            │               │
+│  ├──────────┬──────────┬──────────┬────────┤               │
+│  │ Id (PK)  │ TenantId │ TrackNum │ Status │               │
+│  ├──────────┼──────────┼──────────┼────────┤               │
+│  │ guid-1   │ A111     │ TRACK001 │ 0      │ ← Tenant A    │
+│  │ guid-2   │ A111     │ TRACK002 │ 1      │ ← Tenant A    │
+│  │ guid-3   │ B222     │ TRACK003 │ 2      │ ← Tenant B    │
+│  │ guid-4   │ C333     │ TRACK004 │ 0      │ ← Tenant C    │
+│  └──────────┴──────────┴──────────┴────────┘               │
+└─────────────────────────────────────────────────────────────┘
+
+Механизм изоляции:
+1. Global Query Filter в EF Core:
+   WHERE TenantId = @currentTenantId
+   
+2. Автоматическое проставление TenantId при сохранении
+
+3. TenantProvider предоставляет текущий TenantId
+   (в будущем из JWT токена)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                               БАЗА ДАННЫХ                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📊 Таблица: Tenants
+┌────────────────────────┬──────────────┬──────────────────────────────┐
+│ Колонка                │ Тип          │ Описание                     │
+├────────────────────────┼──────────────┼──────────────────────────────┤
+│ Id                     │ UUID         │ Primary Key                  │
+│ TenantId               │ UUID         │ Ссылка на самого себя        │
+│ CompanyName            │ VARCHAR(200) │ Название компании            │
+│ TenantCode             │ VARCHAR(50)  │ Уникальный код (UNIQUE)      │
+│ ContactEmail           │ VARCHAR(256) │ Email контакта               │
+│ ContactPhone           │ VARCHAR(20)  │ Телефон (nullable)           │
+│ IsActive               │ BOOLEAN      │ Активен ли тенант            │
+│ SubscriptionExpiresAt  │ TIMESTAMP    │ Дата окончания подписки      │
+│ CreatedAt              │ TIMESTAMP    │ Дата создания                │
+│ UpdatedAt              │ TIMESTAMP    │ Дата обновления (nullable)   │
+└────────────────────────┴──────────────┴──────────────────────────────┘
+
+📊 Таблица: Tracks
+┌────────────────────────┬──────────────┬──────────────────────────────┐
+│ Колонка                │ Тип          │ Описание                     │
+├────────────────────────┼──────────────┼──────────────────────────────┤
+│ Id                     │ UUID         │ Primary Key                  │
+│ TenantId               │ UUID         │ Foreign Key → Tenants.Id     │
+│ ClientCode             │ VARCHAR(100) │ Код клиента                  │
+│ TrackingNumber         │ VARCHAR(100) │ Трек-номер (UNIQUE per tenant)│
+│ Status                 │ INTEGER      │ Enum: TrackStatus            │
+│ Description            │ VARCHAR(500) │ Описание груза               │
+│ Weight                 │ DECIMAL(10,2)│ Вес (кг)                     │
+│ DeclaredValue          │ DECIMAL(18,2)│ Объявленная стоимость        │
+│ OriginCountry          │ VARCHAR(100) │ Страна отправления           │
+│ DestinationCountry     │ VARCHAR(100) │ Страна назначения            │
+│ ShippedAt              │ TIMESTAMP    │ Дата отправки                │
+│ EstimatedDeliveryAt    │ TIMESTAMP    │ Ожидаемая дата доставки      │
+│ ActualDeliveryAt       │ TIMESTAMP    │ Фактическая дата доставки    │
+│ Notes                  │ VARCHAR(1000)│ Примечания                   │
+│ CreatedAt              │ TIMESTAMP    │ Дата создания                │
+│ UpdatedAt              │ TIMESTAMP    │ Дата обновления              │
+└────────────────────────┴──────────────┴──────────────────────────────┘
+
+📌 Индексы:
+  - Tenants.TenantCode (UNIQUE)
+  - Tracks.TrackingNumber
+  - Tracks.TenantId + TrackingNumber (UNIQUE COMPOSITE)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              API ENDPOINTS                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+🔹 Tenants API:
+   GET    /api/tenants                    - Все тенанты
+   GET    /api/tenants/{id}               - Тенант по ID
+   GET    /api/tenants/by-code/{code}     - Тенант по коду
+   GET    /api/tenants/active             - Активные тенанты
+   POST   /api/tenants                    - Создать тенанта
+   PUT    /api/tenants/{id}               - Обновить тенанта
+   DELETE /api/tenants/{id}               - Удалить тенанта
+
+🔹 Tracks API:
+   GET    /api/tracks                            - Все треки (текущего тенанта)
+   GET    /api/tracks/{id}                       - Трек по ID
+   GET    /api/tracks/by-tracking-number/{num}   - Трек по номеру
+   GET    /api/tracks/by-client/{code}           - Треки клиента
+   GET    /api/tracks/by-status/{status}         - Треки по статусу
+   POST   /api/tracks                            - Создать трек
+   PUT    /api/tracks/{id}                       - Обновить трек
+   DELETE /api/tracks/{id}                       - Удалить трек
+
+🔹 Swagger UI:
+   https://localhost:5001/swagger
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         КОМАНДЫ ДЛЯ ЗАПУСКА                                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+# 1. Восстановить зависимости
+dotnet restore
+
+# 2. Собрать проект
+dotnet build
+
+# 3. Создать миграцию
+cd src/Cargo.API
+dotnet ef migrations add InitialCreate --project ../Cargo.Infrastructure --startup-project .
+
+# 4. Применить миграцию
+dotnet ef database update
+
+# 5. Запустить API
+dotnet run --project src/Cargo.API
+
+# 6. Открыть Swagger
+https://localhost:5001/swagger
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                            СТАТИСТИКА ПРОЕКТА                                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📦 Проектов:                3
+📁 Папок:                   15
+📄 Файлов кода (.cs):       20
+📘 Документации (.md):      4
+🔧 Конфигураций:            6
+📊 Сущностей:               3 (BaseEntity, Tenant, Track)
+🔌 Интерфейсов:             5
+💾 Репозиториев:            4 (базовый + 3 специализированных)
+🌐 Контроллеров:            2
+📮 API Endpoints:           14
+🗄️ Таблиц БД:              2
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                          СЛЕДУЮЩИЕ ШАГИ (TODO)                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Высокий приоритет:
+  [ ] Добавить JWT аутентификацию
+  [ ] Реализовать HttpTenantProvider (извлечение TenantId из JWT)
+  [ ] Добавить FluentValidation для валидации DTO
+  [ ] Настроить Serilog для структурированного логирования
+  [ ] Написать Unit-тесты (xUnit)
+
+Средний приоритет:
+  [ ] Добавить пагинацию для списков
+  [ ] Реализовать поиск и фильтрацию
+  [ ] Добавить API для истории изменений треков
+  [ ] Настроить Docker и Docker Compose
+  [ ] ДобавитьHealthChecks для мониторинга
+
+Низкий приоритет:
+  [ ] Интеграционные тесты
+  [ ] SignalR для real-time уведомлений
+  [ ] Redis для кэширования
+  [ ] CI/CD pipeline (GitHub Actions)
+  [ ] Kubernetes deployment
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              ВЕРСИЯ И АВТОР                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Проект:        Cargo.Solution
+Версия:        1.0.0
+Создан:        Декабрь 2025
+Архитектор:    Senior .NET Architect
+Фреймворк:     .NET 8.0
+Лицензия:      Для образовательных целей
+
+
