@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Cargo.Infrastructure.Migrations
 {
     [DbContext(typeof(CargoDbContext))]
-    [Migration("20251204180025_InitialIdentityMigration")]
+    [Migration("20251204185229_InitialIdentityMigration")]
     partial class InitialIdentityMigration
     {
         /// <inheritdoc />
@@ -124,11 +124,11 @@ namespace Cargo.Infrastructure.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.HasIndex("TelegramId")
-                        .HasFilter("[TelegramId] IS NOT NULL");
+                        .HasFilter("\"TelegramId\" IS NOT NULL");
 
                     b.HasIndex("TenantId", "TelegramId")
                         .IsUnique()
-                        .HasFilter("[TelegramId] IS NOT NULL");
+                        .HasFilter("\"TelegramId\" IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });

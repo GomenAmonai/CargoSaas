@@ -261,14 +261,14 @@ namespace Cargo.Infrastructure.Migrations
                 name: "IX_AspNetUsers_TelegramId",
                 table: "AspNetUsers",
                 column: "TelegramId",
-                filter: "[TelegramId] IS NOT NULL");
+                filter: "\"TelegramId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUsers_TenantId_TelegramId",
                 table: "AspNetUsers",
                 columns: new[] { "TenantId", "TelegramId" },
                 unique: true,
-                filter: "[TelegramId] IS NOT NULL");
+                filter: "\"TelegramId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",

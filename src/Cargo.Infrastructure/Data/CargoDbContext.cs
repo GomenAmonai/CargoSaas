@@ -135,11 +135,11 @@ public class CargoDbContext : IdentityDbContext<AppUser>
             // Индекс для TelegramId (уникальный в рамках тенанта)
             entity.HasIndex(u => new { u.TenantId, u.TelegramId })
                 .IsUnique()
-                .HasFilter("[TelegramId] IS NOT NULL");
+                .HasFilter("\"TelegramId\" IS NOT NULL");
 
             // Индекс для TelegramId отдельно (для быстрого поиска)
             entity.HasIndex(u => u.TelegramId)
-                .HasFilter("[TelegramId] IS NOT NULL");
+                .HasFilter("\"TelegramId\" IS NOT NULL");
 
             entity.Property(u => u.FirstName)
                 .HasMaxLength(100);

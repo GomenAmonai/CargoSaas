@@ -121,11 +121,11 @@ namespace Cargo.Infrastructure.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.HasIndex("TelegramId")
-                        .HasFilter("[TelegramId] IS NOT NULL");
+                        .HasFilter("\"TelegramId\" IS NOT NULL");
 
                     b.HasIndex("TenantId", "TelegramId")
                         .IsUnique()
-                        .HasFilter("[TelegramId] IS NOT NULL");
+                        .HasFilter("\"TelegramId\" IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
