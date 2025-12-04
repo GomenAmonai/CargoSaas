@@ -29,20 +29,23 @@ FROM nginx:alpine
 # Копируем собранные файлы из builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Копируем nginx конфигурацию для SPA (React Router)
-RUN echo 'server { \
-    listen 80; \
+# Скрипт для динамической настройки порта
+RUN echo '#!/bin/sh\n\
+PORT=${PORT:-80}\n\
+echo "server { \
+    listen $PORT; \
     server_name _; \
     root /usr/share/nginx/html; \
     index index.html; \
     location / { \
-        try_files $uri $uri/ /index.html; \
+        try_files \$uri \$uri/ /index.html; \
     } \
-}' > /etc/nginx/conf.d/default.conf
+}" > /etc/nginx/conf.d/default.conf\n\
+nginx -g "daemon off;"' > /start.sh && chmod +x /start.sh
 
-# Открываем порт 80
+# Открываем порт (динамический)
 EXPOSE 80
 
-# Запускаем nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Запускаем nginx через скрипт
+CMD ["/start.sh"]
 
