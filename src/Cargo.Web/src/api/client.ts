@@ -110,7 +110,7 @@ export const api = {
   // Аутентификация через Telegram
   auth: {
     login: async (initData: string): Promise<AuthResponse> => {
-      const response = await apiClient.post<AuthResponse>('/client/auth', { initData });
+      const response = await apiClient.post<AuthResponse>('client/auth', { initData });
       
       // Автоматически сохраняем токен
       if (response.data.token) {
@@ -130,12 +130,12 @@ export const api = {
   // Треки
   tracks: {
     getAll: async (): Promise<Track[]> => {
-      const response = await apiClient.get<Track[]>('/tracks');
+      const response = await apiClient.get<Track[]>('tracks');
       return response.data;
     },
     
     getById: async (id: string): Promise<Track> => {
-      const response = await apiClient.get<Track>(`/tracks/${id}`);
+      const response = await apiClient.get<Track>(`tracks/${id}`);
       return response.data;
     },
   },
