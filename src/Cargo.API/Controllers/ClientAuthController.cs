@@ -49,13 +49,12 @@ public class ClientAuthController : ControllerBase
     {
         try
         {
-            // ВРЕМЕННО ОТКЛЮЧЕНО для debug
-            // if (!_telegramAuthService.ValidateInitData(request.InitData))
-            // {
-            //     _logger.LogWarning("Invalid initData received");
-            //     return Unauthorized(new { message = "Invalid Telegram authentication data" });
-            // }
-            _logger.LogWarning("⚠️ VALIDATION DISABLED FOR DEBUG!");
+            // Валидируем initData от Telegram
+            if (!_telegramAuthService.ValidateInitData(request.InitData))
+            {
+                _logger.LogWarning("Invalid initData received");
+                return Unauthorized(new { message = "Invalid Telegram authentication data" });
+            }
 
             // Парсим данные пользователя из initData
             var initDataDict = _telegramAuthService.ParseInitData(request.InitData);
@@ -183,6 +182,7 @@ public class ClientAuthController : ControllerBase
     /// </summary>
     private class TelegramUserData
     {
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
         public long Id { get; set; }
         
         [System.Text.Json.Serialization.JsonPropertyName("first_name")]
