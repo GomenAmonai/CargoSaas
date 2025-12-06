@@ -34,8 +34,10 @@ public class TelegramAuthService : ITelegramAuthService
                 return false;
             }
 
-            // Убираем hash из данных для проверки
+            // Убираем hash и signature из данных для проверки
+            // signature - это новое поле Telegram WebApp, оно не участвует в валидации
             data.Remove("hash");
+            data.Remove("signature");
 
             // Сортируем ключи и создаем data-check-string
             var dataCheckString = string.Join("\n", 
