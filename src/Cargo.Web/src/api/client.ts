@@ -1,8 +1,7 @@
 import axios from 'axios';
 import WebApp from '@twa-dev/sdk';
 
-// Hardcoded for now - Railway env vars not working
-const API_URL = 'https://cargosaas-production.up.railway.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://cargosaas-production.up.railway.app/api';
 console.log('🔧 API_URL configured:', API_URL);
 
 // Token storage keys

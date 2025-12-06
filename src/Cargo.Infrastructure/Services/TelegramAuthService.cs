@@ -54,6 +54,8 @@ public class TelegramAuthService : ITelegramAuthService
             {
                 _logger.LogWarning("InitData validation failed. Computed hash: {ComputedHash}, Received hash: {ReceivedHash}", 
                     computedHash, receivedHash);
+                _logger.LogWarning("Data check string: {DataCheckString}", dataCheckString);
+                _logger.LogWarning("Bot token length: {TokenLength}", _botToken?.Length ?? 0);
             }
 
             return isValid;
