@@ -42,13 +42,19 @@ public class TelegramAuthService : ITelegramAuthService
                 var key = kv[0];
                 var value = kv[1];  // ВАЖНО: НЕ декодируем!
                 
+                // Исключаем hash и signature из валидации
                 if (key == "hash")
                 {
                     receivedHash = value;
                     continue;  // НЕ добавляем hash в data
                 }
                 
-                // Все остальное добавляем (включая signature, query_id, user, auth_date)
+                if (key == "signature")
+                {
+                    continue;  // НЕ добавляем signature в data (это для Mini Apps)
+                }
+                
+                // Все остальное добавляем (query_id, user, auth_date)
                 data[key] = value;
             }
             
