@@ -1,5 +1,5 @@
-import { useTelegram } from '../contexts/TelegramProvider';
-import { useAuth } from '../contexts/AuthProvider';
+import { useTelegram } from '../hooks/useTelegram';
+import { useAuth } from '../hooks/useAuth';
 
 const Home = () => {
   const { webApp } = useTelegram();

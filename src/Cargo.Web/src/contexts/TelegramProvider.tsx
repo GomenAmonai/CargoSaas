@@ -1,23 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import WebApp from '@twa-dev/sdk';
-
-interface TelegramContextType {
-  webApp: typeof WebApp;
-  user: typeof WebApp.initDataUnsafe.user;
-  isReady: boolean;
-  isTelegramApp: boolean;
-}
-
-const TelegramContext = createContext<TelegramContextType | undefined>(undefined);
-
-export const useTelegram = () => {
-  const context = useContext(TelegramContext);
-  if (!context) {
-    throw new Error('useTelegram must be used within TelegramProvider');
-  }
-  return context;
-};
+import { TelegramContext } from './TelegramContext';
+import type { TelegramContextType } from './TelegramContext';
 
 interface TelegramProviderProps {
   children: ReactNode;

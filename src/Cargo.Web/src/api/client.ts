@@ -1,7 +1,7 @@
 import axios from 'axios';
 import WebApp from '@twa-dev/sdk';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://cargosaas-production.up.railway.app/api';
 
 // Token storage keys
 const TOKEN_KEY = 'cargo_auth_token';

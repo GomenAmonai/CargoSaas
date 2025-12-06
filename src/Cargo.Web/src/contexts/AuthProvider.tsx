@@ -1,38 +1,10 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, tokenStorage } from '../api/client';
 import type { AuthResponse } from '../api/client';
-
-interface User {
-  id: string;
-  telegramId: number;
-  firstName: string;
-  lastName?: string;
-  username?: string;
-  photoUrl?: string;
-  role: string;
-  tenantId?: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  login: () => Promise<void>;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-};
+import { AuthContext } from './AuthContext';
+import type { User, AuthContextType } from './AuthContext';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -71,10 +43,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         message: `Hello, ${response.user.firstName}! You are now logged in.`,
       });
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('❌ Login error:', err);
       
-      const errorMessage = err.response?.data?.message || err.message || 'Authentication failed';
+      const error = err as { response?: { data?: { message?: string } }; message?: string };
+      const errorMessage = error.response?.data?.message || error.message || 'Authentication failed';
       setError(errorMessage);
       setIsLoading(false);
 

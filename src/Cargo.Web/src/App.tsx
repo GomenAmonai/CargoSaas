@@ -1,5 +1,6 @@
-import { TelegramProvider, useTelegram } from './contexts/TelegramProvider';
+import { TelegramProvider } from './contexts/TelegramProvider';
 import { AuthProvider } from './contexts/AuthProvider';
+import { useTelegram } from './hooks/useTelegram';
 import { AuthGuard } from './components/AuthGuard';
 import Home from './pages/Home';
 import './index.css';
