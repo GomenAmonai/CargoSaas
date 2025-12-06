@@ -26,11 +26,20 @@ public class TelegramAuthService : ITelegramAuthService
     {
         try
         {
-            // Логируем ПОЛНЫЙ initData для debug
             _logger.LogWarning("Raw initData (full): {InitData}", initData);
             
-            // Для валидации НЕ декодируем URL - используем оригинальные значения!
-            var data = ParseInitDataForValidation(initData);
+            // Парсим query string вручную (без HttpUtility)
+            var pairs = initData.Split('&');
+            var data = new Dictionary<string, string>();
+            
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split('=', 2);
+                if (keyValue.Length == 2)
+                {
+                    data[keyValue[0]] = keyValue[1];  // НЕ декодируем!
+                }
+            }
             
             if (!data.TryGetValue("hash", out var receivedHash))
             {
@@ -38,37 +47,35 @@ public class TelegramAuthService : ITelegramAuthService
                 return false;
             }
 
-            // Убираем hash и signature из данных для проверки
-            // signature - это новое поле Telegram WebApp, оно не участвует в валидации
+            // Убираем hash и signature
             data.Remove("hash");
             data.Remove("signature");
 
-            // Сортируем ключи и создаем data-check-string
-            var sortedData = data.OrderBy(x => x.Key).ToList();
-            var dataCheckString = string.Join("\n", 
-                sortedData.Select(x => $"{x.Key}={x.Value}"));
+            // Сортируем и создаем data-check-string
+            var checkString = string.Join("\n", 
+                data.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}"));
             
-            // Debug: покажем каждый параметр отдельно
-            _logger.LogWarning("Sorted parameters ({Count}):", sortedData.Count);
-            foreach (var item in sortedData)
-            {
-                _logger.LogWarning("  {Key} = {Value}", item.Key, item.Value.Length > 100 ? item.Value.Substring(0, 100) + "..." : item.Value);
-            }
+            _logger.LogWarning("Data check string for validation: {CheckString}", checkString);
 
             // Создаем secret_key = HMAC-SHA256("WebAppData", bot_token)
-            var secretKey = ComputeHmacSha256Bytes("WebAppData", _botToken);
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("WebAppData"));
+            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes(_botToken));
 
             // Вычисляем hash = HMAC-SHA256(data-check-string, secret_key)
-            var computedHash = ComputeHmacSha256WithBytes(dataCheckString, secretKey);
+            using var hashHmac = new HMACSHA256(secretKey);
+            var hashBytes = hashHmac.ComputeHash(Encoding.UTF8.GetBytes(checkString));
+            var computedHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
 
             var isValid = computedHash.Equals(receivedHash, StringComparison.OrdinalIgnoreCase);
             
             if (!isValid)
             {
-                _logger.LogWarning("InitData validation failed. Computed hash: {ComputedHash}, Received hash: {ReceivedHash}", 
+                _logger.LogWarning("Validation FAILED. Computed: {Computed}, Received: {Received}", 
                     computedHash, receivedHash);
-                _logger.LogWarning("Data check string: {DataCheckString}", dataCheckString);
-                _logger.LogWarning("Bot token length: {TokenLength}", _botToken?.Length ?? 0);
+            }
+            else
+            {
+                _logger.LogInformation("✅ InitData validation SUCCESS!");
             }
 
             return isValid;
@@ -78,30 +85,6 @@ public class TelegramAuthService : ITelegramAuthService
             _logger.LogError(ex, "Error validating initData");
             return false;
         }
-    }
-
-    // Парсинг для валидации - НЕ декодируем URL! Используем оригинальные значения
-    private Dictionary<string, string> ParseInitDataForValidation(string initData)
-    {
-        var result = new Dictionary<string, string>();
-        
-        if (string.IsNullOrWhiteSpace(initData))
-            return result;
-
-        var pairs = initData.Split('&');
-        foreach (var pair in pairs)
-        {
-            var keyValue = pair.Split('=', 2);
-            if (keyValue.Length == 2)
-            {
-                // НЕ ДЕКОДИРУЕМ для валидации - Telegram подписывает URL-encoded данные!
-                var key = keyValue[0];
-                var value = keyValue[1];
-                result[key] = value;
-            }
-        }
-
-        return result;
     }
 
     // Парсинг для использования - декодируем URL
