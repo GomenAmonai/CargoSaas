@@ -29,28 +29,34 @@ public class TelegramAuthService : ITelegramAuthService
         {
             _logger.LogWarning("Raw initData (full): {InitData}", initData);
             
-            // Парсим query string вручную (без HttpUtility)
+            // Парсим query string и СРАЗУ исключаем hash (не добавляем в data)
             var pairs = initData.Split('&');
             var data = new Dictionary<string, string>();
+            string receivedHash = string.Empty;
             
             foreach (var pair in pairs)
             {
-                var keyValue = pair.Split('=', 2);
-                if (keyValue.Length == 2)
+                var kv = pair.Split('=', 2);
+                if (kv.Length != 2) continue;
+                
+                var key = kv[0];
+                var value = kv[1];  // ВАЖНО: НЕ декодируем!
+                
+                if (key == "hash")
                 {
-                    data[keyValue[0]] = keyValue[1];  // НЕ декодируем!
+                    receivedHash = value;
+                    continue;  // НЕ добавляем hash в data
                 }
+                
+                // Все остальное добавляем (включая signature, query_id, user, auth_date)
+                data[key] = value;
             }
             
-            if (!data.TryGetValue("hash", out var receivedHash))
+            if (string.IsNullOrEmpty(receivedHash))
             {
                 _logger.LogWarning("Hash not found in initData");
                 return false;
             }
-
-            // Убираем hash и signature
-            data.Remove("hash");
-            data.Remove("signature");
 
             // Сортируем и создаем data-check-string
             var checkString = string.Join("\n", 
