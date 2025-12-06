@@ -26,6 +26,10 @@ public class TelegramAuthService : ITelegramAuthService
     {
         try
         {
+            _logger.LogWarning("Raw initData length: {Length}, first 200 chars: {InitData}", 
+                initData?.Length ?? 0, 
+                initData?.Length > 200 ? initData.Substring(0, 200) : initData);
+            
             var data = ParseInitData(initData);
             
             if (!data.TryGetValue("hash", out var receivedHash))
@@ -40,9 +44,16 @@ public class TelegramAuthService : ITelegramAuthService
             data.Remove("signature");
 
             // Сортируем ключи и создаем data-check-string
+            var sortedData = data.OrderBy(x => x.Key).ToList();
             var dataCheckString = string.Join("\n", 
-                data.OrderBy(x => x.Key)
-                    .Select(x => $"{x.Key}={x.Value}"));
+                sortedData.Select(x => $"{x.Key}={x.Value}"));
+            
+            // Debug: покажем каждый параметр отдельно
+            _logger.LogWarning("Sorted parameters ({Count}):", sortedData.Count);
+            foreach (var item in sortedData)
+            {
+                _logger.LogWarning("  {Key} = {Value}", item.Key, item.Value.Length > 100 ? item.Value.Substring(0, 100) + "..." : item.Value);
+            }
 
             // Создаем secret_key = HMAC-SHA256("WebAppData", bot_token)
             var secretKey = ComputeHmacSha256Bytes("WebAppData", _botToken);
