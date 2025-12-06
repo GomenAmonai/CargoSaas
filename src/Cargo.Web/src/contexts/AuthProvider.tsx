@@ -86,6 +86,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Функция для логаута
   const logout = useCallback(() => {
     setUser(null);
+    setError(null);  // Очищаем ошибку при logout
     api.auth.logout();
     
     // Опционально: можно закрыть WebApp
@@ -122,7 +123,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user && tokenStorage.exists(),
+    // isAuthenticated если есть токен (даже если user еще не загружен из /me endpoint)
+    // ИЛИ если user уже загружен (при успешном login)
+    isAuthenticated: tokenStorage.exists() || !!user,
     isLoading,
     error,
     login,
