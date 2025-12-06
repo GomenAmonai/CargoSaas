@@ -86,21 +86,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Проверяем наличие сохраненного токена
-        if (tokenStorage.exists()) {
-          console.log('🔑 Found existing token, attempting to restore session...');
-          
-          // TODO: Можно добавить endpoint /api/auth/me для проверки валидности токена
-          // Пока просто считаем что токен валиден
-          // В production лучше проверить токен на бэкенде
-          
-          setIsLoading(false);
-          // Примечание: здесь user остается null, пока не добавим /me endpoint
-        } else {
-          // Токена нет - делаем автоматический логин через Telegram initData
-          console.log('🚀 No token found, initiating automatic login...');
-          await login();
-        }
+        // 🧪 ВРЕМЕННО: ВСЕГДА делаем новый login для теста валидации
+        console.log('🧪 DEBUG MODE: Force new login to test validation');
+        tokenStorage.remove(); // Удаляем старый токен
+        await login();
+        
+        // СТАРЫЙ КОД (закомментирован):
+        // if (tokenStorage.exists()) {
+        //   console.log('🔑 Found existing token, attempting to restore session...');
+        //   setIsLoading(false);
+        // } else {
+        //   console.log('🚀 No token found, initiating automatic login...');
+        //   await login();
+        // }
       } catch (err) {
         console.error('Auth initialization error:', err);
         setIsLoading(false);
