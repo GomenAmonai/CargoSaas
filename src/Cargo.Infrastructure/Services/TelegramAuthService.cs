@@ -26,9 +26,8 @@ public class TelegramAuthService : ITelegramAuthService
     {
         try
         {
-            _logger.LogWarning("Raw initData length: {Length}, first 200 chars: {InitData}", 
-                initData?.Length ?? 0, 
-                initData?.Length > 200 ? initData.Substring(0, 200) : initData);
+            // Логируем ПОЛНЫЙ initData для debug
+            _logger.LogWarning("Raw initData (full): {InitData}", initData);
             
             // Для валидации НЕ декодируем URL - используем оригинальные значения!
             var data = ParseInitDataForValidation(initData);
