@@ -27,6 +27,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       console.log('🔐 Attempting login with Telegram initData...');
+      console.log('📍 API URL:', import.meta.env.VITE_API_URL || 'using default');
+      console.log('📦 initData length:', WebApp.initData?.length || 0);
 
       // Отправляем запрос на бэкенд
       const response: AuthResponse = await api.auth.login(WebApp.initData);
@@ -46,7 +48,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (err) {
       console.error('❌ Login error:', err);
       
-      const error = err as { response?: { data?: { message?: string } }; message?: string };
+      const error = err as { response?: { data?: { message?: string }; status?: number }; message?: string; config?: { url?: string } };
+      console.error('📍 Error details:', {
+        status: error.response?.status,
+        url: error.config?.url,
+        message: error.response?.data?.message || error.message
+      });
+      
       const errorMessage = error.response?.data?.message || error.message || 'Authentication failed';
       setError(errorMessage);
       setIsLoading(false);
