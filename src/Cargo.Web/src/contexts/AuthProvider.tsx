@@ -39,11 +39,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(response.user);
       setIsLoading(false);
 
-      // Показываем уведомление об успешном входе
-      WebApp.showPopup({
-        title: 'Welcome! 👋',
-        message: `Hello, ${response.user.firstName}! You are now logged in.`,
-      });
+      // Показываем уведомление об успешном входе (если поддерживается)
+      if (WebApp.isVersionAtLeast && WebApp.isVersionAtLeast('6.1')) {
+        WebApp.showPopup({
+          title: 'Welcome! 👋',
+          message: `Hello, ${response.user.firstName}! You are now logged in.`,
+        });
+      } else {
+        console.log('✅ Login successful! Welcome,', response.user.firstName);
+      }
 
     } catch (err) {
       console.error('❌ Login error:', err);
@@ -59,8 +63,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setError(errorMessage);
       setIsLoading(false);
 
-      // Показываем ошибку пользователю
-      WebApp.showAlert(`Login failed: ${errorMessage}`);
+      // Показываем ошибку пользователю (если поддерживается)
+      if (WebApp.showAlert && WebApp.isVersionAtLeast && WebApp.isVersionAtLeast('6.1')) {
+        WebApp.showAlert(`Login failed: ${errorMessage}`);
+      } else {
+        console.error('❌ Login failed:', errorMessage);
+      }
     }
   }, []);
 
