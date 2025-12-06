@@ -1,0 +1,138 @@
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
+import WebApp from '@twa-dev/sdk';
+import { api, tokenStorage } from '../api/client';
+import type { AuthResponse } from '../api/client';
+
+interface User {
+  id: string;
+  telegramId: number;
+  firstName: string;
+  lastName?: string;
+  username?: string;
+  photoUrl?: string;
+  role: string;
+  tenantId?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  login: () => Promise<void>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Функция для логина
+  const login = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Проверяем наличие initData
+      if (!WebApp.initData || WebApp.initData.length === 0) {
+        throw new Error('No Telegram initData available');
+      }
+
+      console.log('🔐 Attempting login with Telegram initData...');
+
+      // Отправляем запрос на бэкенд
+      const response: AuthResponse = await api.auth.login(WebApp.initData);
+
+      console.log('✅ Login successful!', response.user);
+
+      // Сохраняем данные пользователя
+      setUser(response.user);
+      setIsLoading(false);
+
+      // Показываем уведомление об успешном входе
+      WebApp.showPopup({
+        title: 'Welcome! 👋',
+        message: `Hello, ${response.user.firstName}! You are now logged in.`,
+      });
+
+    } catch (err: any) {
+      console.error('❌ Login error:', err);
+      
+      const errorMessage = err.response?.data?.message || err.message || 'Authentication failed';
+      setError(errorMessage);
+      setIsLoading(false);
+
+      // Показываем ошибку пользователю
+      WebApp.showAlert(`Login failed: ${errorMessage}`);
+    }
+  }, []);
+
+  // Функция для логаута
+  const logout = useCallback(() => {
+    setUser(null);
+    api.auth.logout();
+    
+    // Опционально: можно закрыть WebApp
+    // WebApp.close();
+  }, []);
+
+  // Автоматический логин при монтировании компонента
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        // Проверяем наличие сохраненного токена
+        if (tokenStorage.exists()) {
+          console.log('🔑 Found existing token, attempting to restore session...');
+          
+          // TODO: Можно добавить endpoint /api/auth/me для проверки валидности токена
+          // Пока просто считаем что токен валиден
+          // В production лучше проверить токен на бэкенде
+          
+          setIsLoading(false);
+          // Примечание: здесь user остается null, пока не добавим /me endpoint
+        } else {
+          // Токена нет - делаем автоматический логин через Telegram initData
+          console.log('🚀 No token found, initiating automatic login...');
+          await login();
+        }
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
+  }, [login]);
+
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !!user && tokenStorage.exists(),
+    isLoading,
+    error,
+    login,
+    logout,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
