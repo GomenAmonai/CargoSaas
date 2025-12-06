@@ -29,7 +29,7 @@ public class TelegramAuthService : ITelegramAuthService
         {
             _logger.LogWarning("Raw initData (full): {InitData}", initData);
             
-            // Парсим query string и СРАЗУ исключаем hash (не добавляем в data)
+            // Парсим query string и СРАЗУ исключаем hash/signature
             var pairs = initData.Split('&');
             var data = new Dictionary<string, string>();
             string receivedHash = string.Empty;
@@ -40,22 +40,25 @@ public class TelegramAuthService : ITelegramAuthService
                 if (kv.Length != 2) continue;
                 
                 var key = kv[0];
-                var value = kv[1];  // ВАЖНО: НЕ декодируем!
+                var value = kv[1];
                 
-                // Исключаем hash и signature из валидации
+                // Сохраняем hash отдельно
                 if (key == "hash")
                 {
                     receivedHash = value;
-                    continue;  // НЕ добавляем hash в data
+                    continue;
                 }
                 
+                // signature не участвует в HMAC-проверке (WebApp 2.0 MiniApps)
                 if (key == "signature")
                 {
-                    continue;  // НЕ добавляем signature в data (это для Mini Apps)
+                    continue;
                 }
                 
-                // Все остальное добавляем (query_id, user, auth_date)
-                data[key] = value;
+                // ВАЖНО: для HMAC используем ДЕКОДИРОВАННЫЕ значения
+                // Telegram в примере показывает data-check-string c декодированным user JSON
+                var decodedValue = Uri.UnescapeDataString(value);
+                data[key] = decodedValue;
             }
             
             if (string.IsNullOrEmpty(receivedHash))
