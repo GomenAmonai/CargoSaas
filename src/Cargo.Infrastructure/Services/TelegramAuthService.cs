@@ -30,7 +30,8 @@ public class TelegramAuthService : ITelegramAuthService
                 initData?.Length ?? 0, 
                 initData?.Length > 200 ? initData.Substring(0, 200) : initData);
             
-            var data = ParseInitData(initData);
+            // Для валидации НЕ декодируем URL - используем оригинальные значения!
+            var data = ParseInitDataForValidation(initData);
             
             if (!data.TryGetValue("hash", out var receivedHash))
             {
@@ -80,6 +81,31 @@ public class TelegramAuthService : ITelegramAuthService
         }
     }
 
+    // Парсинг для валидации - НЕ декодируем URL! Используем оригинальные значения
+    private Dictionary<string, string> ParseInitDataForValidation(string initData)
+    {
+        var result = new Dictionary<string, string>();
+        
+        if (string.IsNullOrWhiteSpace(initData))
+            return result;
+
+        var pairs = initData.Split('&');
+        foreach (var pair in pairs)
+        {
+            var keyValue = pair.Split('=', 2);
+            if (keyValue.Length == 2)
+            {
+                // НЕ ДЕКОДИРУЕМ для валидации - Telegram подписывает URL-encoded данные!
+                var key = keyValue[0];
+                var value = keyValue[1];
+                result[key] = value;
+            }
+        }
+
+        return result;
+    }
+
+    // Парсинг для использования - декодируем URL
     public Dictionary<string, string> ParseInitData(string initData)
     {
         var result = new Dictionary<string, string>();
