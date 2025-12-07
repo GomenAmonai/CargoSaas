@@ -149,6 +149,12 @@ public class ClientAuthController : ControllerBase
                     user.ClientCode = await GenerateUniqueClientCodeAsync(cancellationToken);
                 }
 
+                // Для старых клиентов без TenantId привязываем к тестовому тенанту
+                if (!user.TenantId.HasValue)
+                {
+                    user.TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+                }
+
                 var result = await _userManager.UpdateAsync(user);
                 
                 if (!result.Succeeded)
