@@ -35,9 +35,7 @@ public class TelegramAuthService : ITelegramAuthService
     {
         try
         {
-            _logger.LogWarning("Raw initData (full): {InitData}", initData);
-            
-            // Парсим query string и СРАЗУ исключаем hash/signature
+            // Парсим query string и СРАЗУ исключаем hash
             var pairs = initData.Split('&');
             var data = new Dictionary<string, string>();
             string receivedHash = string.Empty;
@@ -73,16 +71,10 @@ public class TelegramAuthService : ITelegramAuthService
             // Сортируем и создаем data-check-string
             var checkString = string.Join("\n", 
                 data.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}"));
-            
-            _logger.LogWarning("Data check string for validation: {CheckString}", checkString);
 
             // Создаем secret_key = HMAC-SHA256(bot_token, "WebAppData")
-            // HMACSHA256(key) - конструктор принимает КЛЮЧ
-            // ComputeHash(data) - метод принимает ДАННЫЕ
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("WebAppData"));
             var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes(_botToken));
-            
-            _logger.LogWarning("🔐 Secret key (hex): {SecretKey}", BitConverter.ToString(secretKey).Replace("-", "").ToLowerInvariant());
 
             // Вычисляем hash = HMAC-SHA256(data-check-string, secret_key)
             using var hashHmac = new HMACSHA256(secretKey);
@@ -93,13 +85,11 @@ public class TelegramAuthService : ITelegramAuthService
             
             if (!isValid)
             {
-                _logger.LogWarning("❌ Validation FAILED. Computed: {Computed}, Received: {Received}", 
-                    computedHash, receivedHash);
-                _logger.LogWarning("🔍 Bot token first 10 chars: {TokenStart}", _botToken.Substring(0, Math.Min(10, _botToken.Length)));
+                _logger.LogWarning("InitData validation failed");
             }
             else
             {
-                _logger.LogInformation("✅ InitData validation SUCCESS!");
+                _logger.LogInformation("InitData validation successful");
             }
 
             return isValid;

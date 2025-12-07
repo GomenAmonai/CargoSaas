@@ -94,19 +94,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // 🧪 ВРЕМЕННО: ВСЕГДА делаем новый login для теста валидации
-        console.log('🧪 DEBUG MODE: Force new login to test validation');
-        tokenStorage.remove(); // Удаляем старый токен
-        await login();
-        
-        // СТАРЫЙ КОД (закомментирован):
-        // if (tokenStorage.exists()) {
-        //   console.log('🔑 Found existing token, attempting to restore session...');
-        //   setIsLoading(false);
-        // } else {
-        //   console.log('🚀 No token found, initiating automatic login...');
-        //   await login();
-        // }
+        if (tokenStorage.exists()) {
+          console.log('🔑 Found existing token, session restored');
+          setIsLoading(false);
+        } else {
+          console.log('🔐 No token found, initiating automatic login...');
+          await login();
+        }
       } catch (err) {
         console.error('Auth initialization error:', err);
         setIsLoading(false);
