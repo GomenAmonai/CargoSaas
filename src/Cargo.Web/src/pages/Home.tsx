@@ -1,13 +1,17 @@
+import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { useAuth } from '../hooks/useAuth';
 
 const Home = () => {
   const { webApp } = useTelegram();
   const { user, logout } = useAuth();
+   const navigate = useNavigate();
 
   const handleMyTracksClick = () => {
-    // TODO: Navigate to tracks page
-    webApp.showAlert('My Tracks feature coming soon!');
+    navigate('/tracks');
+    if (webApp.HapticFeedback) {
+      webApp.HapticFeedback.impactOccurred('light');
+    }
   };
 
   const handleLogout = () => {
@@ -132,4 +136,3 @@ const Home = () => {
 };
 
 export default Home;
-

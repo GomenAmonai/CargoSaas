@@ -39,6 +39,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser({
         id: response.userId,
         telegramId: 0, // TODO: добавить telegramId в AuthResponse если нужно
+        clientCode: response.clientCode,
         firstName: response.firstName,
         username: response.username,
         photoUrl: response.photoUrl,
@@ -127,4 +128,3 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     </AuthContext.Provider>
   );
 };
-

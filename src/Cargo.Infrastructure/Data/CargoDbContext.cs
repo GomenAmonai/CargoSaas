@@ -141,6 +141,14 @@ public class CargoDbContext : IdentityDbContext<AppUser>
             entity.HasIndex(u => u.TelegramId)
                 .HasFilter("\"TelegramId\" IS NOT NULL");
 
+            // Индекс для ClientCode (уникальный)
+            entity.HasIndex(u => u.ClientCode)
+                .IsUnique()
+                .HasFilter("\"ClientCode\" IS NOT NULL");
+
+            entity.Property(u => u.ClientCode)
+                .HasMaxLength(20);
+
             entity.Property(u => u.FirstName)
                 .HasMaxLength(100);
 

@@ -21,6 +21,11 @@ public class AuthResponseDto
     public Guid TenantId { get; set; }
 
     /// <summary>
+    /// Уникальный код клиента
+    /// </summary>
+    public string? ClientCode { get; set; }
+
+    /// <summary>
     /// Имя пользователя
     /// </summary>
     public string FirstName { get; set; } = string.Empty;
@@ -45,4 +50,3 @@ public class AuthResponseDto
     /// </summary>
     public bool IsNewUser { get; set; }
 }
-

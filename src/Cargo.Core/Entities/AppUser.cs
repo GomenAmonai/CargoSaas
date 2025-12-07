@@ -22,6 +22,13 @@ public class AppUser : IdentityUser
     public long? TelegramId { get; set; }
 
     /// <summary>
+    /// Уникальный код клиента для связи с треками
+    /// Генерируется автоматически при регистрации
+    /// Формат: "CLT-XXXXXXXX"
+    /// </summary>
+    public string? ClientCode { get; set; }
+
+    /// <summary>
     /// Имя пользователя
     /// </summary>
     public string? FirstName { get; set; }

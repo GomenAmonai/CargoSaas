@@ -2,6 +2,7 @@ using Cargo.API.DTOs;
 using Cargo.Core.Entities;
 using Cargo.Core.Interfaces;
 using Cargo.Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cargo.API.Controllers;
@@ -12,6 +13,7 @@ namespace Cargo.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class TracksController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -19,7 +21,7 @@ public class TracksController : ControllerBase
     private readonly ILogger<TracksController> _logger;
 
     public TracksController(
-        IUnitOfWork unitOfWork, 
+        IUnitOfWork unitOfWork,
         IExcelImportService excelImportService,
         ILogger<TracksController> logger)
     {
@@ -298,5 +300,3 @@ public class TracksController : ControllerBase
         };
     }
 }
-
-

@@ -3,6 +3,7 @@ import { createContext } from 'react';
 export interface User {
   id: string;
   telegramId: number;
+  clientCode?: string;
   firstName: string;
   lastName?: string;
   username?: string;
@@ -21,7 +22,6 @@ export interface AuthContextType {
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 
 
 

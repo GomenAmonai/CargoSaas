@@ -80,6 +80,7 @@ export interface AuthResponse {
   token: string;
   userId: string;
   tenantId: string;
+  clientCode?: string;
   firstName: string;
   username?: string;
   photoUrl?: string;
@@ -128,14 +129,13 @@ export const api = {
   // Треки
   tracks: {
     getAll: async (): Promise<Track[]> => {
-      const response = await apiClient.get<Track[]>('tracks');
+      const response = await apiClient.get<Track[]>('client/tracks');
       return response.data;
     },
     
     getById: async (id: string): Promise<Track> => {
-      const response = await apiClient.get<Track>(`tracks/${id}`);
+      const response = await apiClient.get<Track>(`client/tracks/${id}`);
       return response.data;
     },
   },
 };
-

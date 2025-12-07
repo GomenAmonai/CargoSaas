@@ -104,6 +104,7 @@ public class ClientAuthController : ControllerBase
                     
                     // Роль и статус
                     Role = UserRole.Client,
+                    ClientCode = await GenerateUniqueClientCodeAsync(cancellationToken),
                     
                     // Timestamps
                     LastLoginAt = DateTime.UtcNow,
@@ -158,6 +159,7 @@ public class ClientAuthController : ControllerBase
                 Token = token,
                 UserId = Guid.Parse(user.Id),
                 TenantId = user.TenantId ?? Guid.Empty,
+                ClientCode = user.ClientCode,
                 FirstName = user.FirstName ?? string.Empty,
                 Username = telegramUser.Username,
                 PhotoUrl = user.PhotoUrl,
@@ -175,6 +177,32 @@ public class ClientAuthController : ControllerBase
             _logger.LogError(ex, "Error during authentication");
             return StatusCode(500, new { message = "Internal server error during authentication" });
         }
+    }
+
+    /// <summary>
+    /// Генерация уникального ClientCode для клиента
+    /// Формат: CLT-XXXXXXXX (строчные/заглавные буквы и цифры)
+    /// </summary>
+    private async Task<string> GenerateUniqueClientCodeAsync(CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 10;
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var raw = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+            var candidate = $"CLT-{raw}";
+
+            var exists = await _userManager.Users
+                .IgnoreQueryFilters()
+                .AnyAsync(u => u.ClientCode == candidate, cancellationToken);
+
+            if (!exists)
+            {
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException("Failed to generate unique ClientCode after several attempts");
     }
 
     /// <summary>
