@@ -55,10 +55,9 @@ public class TelegramAuthService : ITelegramAuthService
                     continue;
                 }
                 
-                // ВАЖНО: для HMAC используем ДЕКОДИРОВАННЫЕ значения
-                // Telegram в примере показывает data-check-string c декодированным user JSON
-                var decodedValue = Uri.UnescapeDataString(value);
-                data[key] = decodedValue;
+                // ВАЖНО: для HMAC используем значения в ИСХОДНОМ виде (НЕ декодируем!)
+                // Telegram подписывает данные ДО URL-encoding
+                data[key] = value;
             }
             
             if (string.IsNullOrEmpty(receivedHash))
