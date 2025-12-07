@@ -162,11 +162,8 @@ public class ClientAuthController : ControllerBase
                     telegramUser.Id, user.Id);
             }
 
-            // Для новых пользователей создаем демо-треки, если их еще нет
-            if (isNewUser)
-            {
-                await EnsureDemoTracksForClientAsync(user, cancellationToken);
-            }
+            // Создаем демо-треки для клиента, если у него еще ничего нет
+            await EnsureDemoTracksForClientAsync(user, cancellationToken);
 
             // Генерируем JWT токен
             var token = _jwtService.GenerateToken(user);
