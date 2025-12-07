@@ -95,13 +95,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        if (tokenStorage.exists()) {
-          console.log('🔑 Found existing token, session restored');
-          setIsLoading(false);
-        } else {
-          console.log('🔐 No token found, initiating automatic login...');
-          await login();
-        }
+        console.log('🔐 Initiating Telegram-based login (refreshing session)...');
+        await login();
       } catch (err) {
         console.error('Auth initialization error:', err);
         setIsLoading(false);
