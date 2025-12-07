@@ -7,20 +7,6 @@ const Home = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleCopyClientCode = () => {
-    if (!user?.clientCode) return;
-
-    try {
-      navigator.clipboard.writeText(user.clientCode);
-      if (webApp.HapticFeedback) {
-        webApp.HapticFeedback.notificationOccurred('success');
-      }
-      webApp.showAlert('Client code copied to clipboard');
-    } catch {
-      webApp.showAlert('Failed to copy client code');
-    }
-  };
-
   const handleMyTracksClick = () => {
     navigate('/tracks');
     if (webApp.HapticFeedback) {
@@ -36,6 +22,20 @@ const Home = () => {
     });
   };
 
+  const handleCopyClientCode = async () => {
+    if (!user?.clientCode) return;
+
+    try {
+      await navigator.clipboard.writeText(user.clientCode);
+      if (webApp.HapticFeedback) {
+        webApp.HapticFeedback.notificationOccurred('success');
+      }
+      webApp.showAlert('Client code copied to clipboard');
+    } catch {
+      webApp.showAlert('Failed to copy client code');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-tg-bg flex flex-col">
       {/* Header */}
@@ -49,12 +49,12 @@ const Home = () => {
               Track your cargo shipments with ease
             </p>
           </div>
-          
+
           {/* User Avatar */}
           {user?.photoUrl && (
             <div className="ml-4">
-              <img 
-                src={user.photoUrl} 
+              <img
+                src={user.photoUrl}
                 alt={user.firstName}
                 className="w-12 h-12 rounded-full border-2 border-tg-button"
               />
@@ -96,7 +96,7 @@ const Home = () => {
           <h2 className="text-lg font-semibold text-tg-text mb-4">
             Quick Actions
           </h2>
-          
+
           {/* My Tracks Button */}
           <button
             onClick={handleMyTracksClick}
@@ -113,8 +113,8 @@ const Home = () => {
             About Cargo System
           </h3>
           <p className="text-tg-hint text-sm leading-relaxed">
-            Track your packages in real-time, get instant notifications about status changes,
-            and manage all your shipments in one place.
+            Track your packages in real-time, get instant notifications about
+            status changes, and manage all your shipments in one place.
           </p>
         </div>
 
@@ -124,7 +124,7 @@ const Home = () => {
             <h3 className="text-md font-semibold text-tg-text mb-3">
               Account Info
             </h3>
-            
+
             <div className="space-y-2 mb-4">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-tg-hint">Name:</span>
@@ -132,25 +132,28 @@ const Home = () => {
                   {user.firstName} {user.lastName || ''}
                 </span>
               </div>
-              
+
               {user.username && (
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-tg-hint">Username:</span>
                   <span className="text-sm text-tg-text">@{user.username}</span>
                 </div>
               )}
-              
+
               <div className="flex justify-between items-center">
                 <span className="text-xs text-tg-hint">Role:</span>
                 <span className="text-sm text-tg-text capitalize">
                   {user.role.toLowerCase()}
                 </span>
               </div>
-              
+
               <div className="flex justify-between items-center">
                 <span className="text-xs text-tg-hint">Telegram ID:</span>
-                <span className="text-xs text-tg-hint font-mono">{user.telegramId}</span>
+                <span className="text-xs text-tg-hint font-mono">
+                  {user.telegramId}
+                </span>
               </div>
+
               {user.clientCode && (
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-tg-hint">Client Code:</span>
@@ -184,3 +187,4 @@ const Home = () => {
 };
 
 export default Home;
+
