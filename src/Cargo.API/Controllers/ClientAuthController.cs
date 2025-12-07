@@ -19,17 +19,20 @@ public class ClientAuthController : ControllerBase
     private readonly ITelegramAuthService _telegramAuthService;
     private readonly IJwtService _jwtService;
     private readonly UserManager<AppUser> _userManager;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ClientAuthController> _logger;
 
     public ClientAuthController(
         ITelegramAuthService telegramAuthService,
         IJwtService jwtService,
         UserManager<AppUser> userManager,
+        IUnitOfWork unitOfWork,
         ILogger<ClientAuthController> logger)
     {
         _telegramAuthService = telegramAuthService;
         _jwtService = jwtService;
         _userManager = userManager;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -104,7 +107,6 @@ public class ClientAuthController : ControllerBase
                     
                     // Роль и статус
                     Role = UserRole.Client,
-                    ClientCode = await GenerateUniqueClientCodeAsync(cancellationToken),
                     
                     // Timestamps
                     LastLoginAt = DateTime.UtcNow,
@@ -114,6 +116,9 @@ public class ClientAuthController : ControllerBase
                     // TenantId будет установлен автоматически через TenantProvider
                     TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111") // Тестовый тенант
                 };
+
+                // Генерируем ClientCode для нового пользователя
+                user.ClientCode = await GenerateUniqueClientCodeAsync(cancellationToken);
 
                 var result = await _userManager.CreateAsync(user);
                 
@@ -138,6 +143,12 @@ public class ClientAuthController : ControllerBase
                 user.LastLoginAt = DateTime.UtcNow;
                 user.UpdatedAt = DateTime.UtcNow;
 
+                // Назначаем ClientCode, если его еще нет (старые пользователи до миграции)
+                if (string.IsNullOrWhiteSpace(user.ClientCode))
+                {
+                    user.ClientCode = await GenerateUniqueClientCodeAsync(cancellationToken);
+                }
+
                 var result = await _userManager.UpdateAsync(user);
                 
                 if (!result.Succeeded)
@@ -149,6 +160,12 @@ public class ClientAuthController : ControllerBase
 
                 _logger.LogInformation("Updated existing user with TelegramId: {TelegramId}, UserId: {UserId}", 
                     telegramUser.Id, user.Id);
+            }
+
+            // Для новых пользователей создаем демо-треки, если их еще нет
+            if (isNewUser)
+            {
+                await EnsureDemoTracksForClientAsync(user, cancellationToken);
             }
 
             // Генерируем JWT токен
@@ -203,6 +220,98 @@ public class ClientAuthController : ControllerBase
         }
 
         throw new InvalidOperationException("Failed to generate unique ClientCode after several attempts");
+    }
+
+    /// <summary>
+    /// Создает несколько демо-треков для нового клиента, если у него еще нет треков
+    /// </summary>
+    private async Task EnsureDemoTracksForClientAsync(AppUser user, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(user.ClientCode) || !user.TenantId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            var existingTracks = await _unitOfWork.Tracks
+                .GetByClientCodeAsync(user.ClientCode, cancellationToken);
+
+            if (existingTracks.Any())
+            {
+                return;
+            }
+
+            var now = DateTime.UtcNow;
+            var tenantId = user.TenantId.Value;
+
+            var demoTracks = new List<Track>
+            {
+                new Track
+                {
+                    TenantId = tenantId,
+                    ClientCode = user.ClientCode,
+                    TrackingNumber = $"DEMO-{user.ClientCode}-1",
+                    Status = TrackStatus.Created,
+                    Description = "Demo: New shipment created",
+                    OriginCountry = "China",
+                    DestinationCountry = "Russia",
+                    Weight = 1.2m,
+                    CreatedAt = now.AddDays(-2),
+                    EstimatedDeliveryAt = now.AddDays(5)
+                },
+                new Track
+                {
+                    TenantId = tenantId,
+                    ClientCode = user.ClientCode,
+                    TrackingNumber = $"DEMO-{user.ClientCode}-2",
+                    Status = TrackStatus.InTransit,
+                    Description = "Demo: Package is on the way",
+                    OriginCountry = "Turkey",
+                    DestinationCountry = "Russia",
+                    Weight = 3.5m,
+                    CreatedAt = now.AddDays(-5),
+                    ShippedAt = now.AddDays(-3),
+                    EstimatedDeliveryAt = now.AddDays(2)
+                },
+                new Track
+                {
+                    TenantId = tenantId,
+                    ClientCode = user.ClientCode,
+                    TrackingNumber = $"DEMO-{user.ClientCode}-3",
+                    Status = TrackStatus.Delivered,
+                    Description = "Demo: Recently delivered shipment",
+                    OriginCountry = "Germany",
+                    DestinationCountry = "Russia",
+                    Weight = 0.8m,
+                    CreatedAt = now.AddDays(-10),
+                    ShippedAt = now.AddDays(-8),
+                    EstimatedDeliveryAt = now.AddDays(-3),
+                    ActualDeliveryAt = now.AddDays(-2)
+                }
+            };
+
+            foreach (var track in demoTracks)
+            {
+                await _unitOfWork.Tracks.AddAsync(track, cancellationToken);
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Created {Count} demo tracks for client {ClientCode} (UserId: {UserId})",
+                demoTracks.Count,
+                user.ClientCode,
+                user.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to create demo tracks for client {ClientCode} (UserId: {UserId})",
+                user.ClientCode,
+                user.Id);
+            // Не ломаем логин, если сидер упал
+        }
     }
 
     /// <summary>

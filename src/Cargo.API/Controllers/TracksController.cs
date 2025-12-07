@@ -8,12 +8,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cargo.API.Controllers;
 
 /// <summary>
-/// Контроллер для управления треками
+/// Контроллер для управления треками (для Manager/SystemAdmin)
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "Manager,SystemAdmin")]
 public class TracksController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
