@@ -32,8 +32,12 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new()
     {
         Title = "Cargo API",
-        Version = "v1",
-        Description = "B2B SaaS платформа для отслеживания грузов с multi-tenancy и Telegram WebApp"
+        Version = "v1.0.0",
+        Description = "🚀 B2B SaaS платформа для отслеживания грузов с multi-tenancy и Telegram WebApp\n\n" +
+                      "✅ Telegram WebApp Authentication\n" +
+                      "✅ ASP.NET Core Identity\n" +
+                      "✅ Multi-tenancy\n" +
+                      "✅ JWT Authentication"
     });
 });
 
