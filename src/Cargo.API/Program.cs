@@ -5,6 +5,7 @@ using Cargo.Infrastructure.Data;
 using Cargo.Infrastructure.Repositories;
 using Cargo.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -14,6 +15,14 @@ using OfficeOpenXml;
 OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Forwarded Headers для Railway (SSL терминируется на балансировщике)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -196,6 +205,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline
+// ВАЖНО: UseForwardedHeaders ПЕРВЫМ для корректной работы на Railway
+app.UseForwardedHeaders();
+
 // Swagger нужен всегда, пока мы тестируем
 app.UseSwagger();
 app.UseSwaggerUI(c => 
@@ -210,7 +222,9 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.UseHttpsRedirection();
+// ОТКЛЮЧЕНО: На Railway SSL терминируется на балансировщике, 
+// UseHttpsRedirection вызывает 405 Method Not Allowed для POST запросов
+// app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 

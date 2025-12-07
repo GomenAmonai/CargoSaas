@@ -17,10 +17,10 @@ public class TelegramAuthService : ITelegramAuthService
 
     public TelegramAuthService(IConfiguration configuration, ILogger<TelegramAuthService> logger)
     {
-        // ВРЕМЕННО: хардкод для debug
-        _botToken = "8591035047:AAH_0hYmc3PU9fG7sWg5OB8DrpYKCkT5-d0";
+        _botToken = configuration["Telegram:BotToken"] 
+            ?? throw new InvalidOperationException("Telegram:BotToken is not configured");
         _logger = logger;
-        _logger.LogWarning("🔑 Using hardcoded bot token for debug");
+        _logger.LogInformation("TelegramAuthService initialized with configured bot token");
     }
 
     public bool ValidateInitData(string initData)
