@@ -63,9 +63,10 @@ public class TelegramAuthService : ITelegramAuthService
                     continue;
                 }
                 
-                // ВАЖНО: для HMAC используем значения в ИСХОДНОМ виде (НЕ декодируем!)
-                // Telegram подписывает данные ДО URL-encoding
-                data[key] = value;
+                // ВАЖНО: URLSearchParams в JS автоматически декодирует значения
+                // Telegram подписывает ДЕКОДИРОВАННЫЕ данные
+                var decodedValue = Uri.UnescapeDataString(value);
+                data[key] = decodedValue;
             }
             
             if (string.IsNullOrEmpty(receivedHash))
@@ -80,9 +81,13 @@ public class TelegramAuthService : ITelegramAuthService
             
             _logger.LogWarning("Data check string for validation: {CheckString}", checkString);
 
-            // Создаем secret_key = HMAC-SHA256("WebAppData", bot_token)
+            // Создаем secret_key = HMAC-SHA256(bot_token, "WebAppData")
+            // HMACSHA256(key) - конструктор принимает КЛЮЧ
+            // ComputeHash(data) - метод принимает ДАННЫЕ
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("WebAppData"));
             var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes(_botToken));
+            
+            _logger.LogWarning("🔐 Secret key (hex): {SecretKey}", BitConverter.ToString(secretKey).Replace("-", "").ToLowerInvariant());
 
             // Вычисляем hash = HMAC-SHA256(data-check-string, secret_key)
             using var hashHmac = new HMACSHA256(secretKey);
@@ -93,8 +98,9 @@ public class TelegramAuthService : ITelegramAuthService
             
             if (!isValid)
             {
-                _logger.LogWarning("Validation FAILED. Computed: {Computed}, Received: {Received}", 
+                _logger.LogWarning("❌ Validation FAILED. Computed: {Computed}, Received: {Received}", 
                     computedHash, receivedHash);
+                _logger.LogWarning("🔍 Bot token first 10 chars: {TokenStart}", _botToken.Substring(0, Math.Min(10, _botToken.Length)));
             }
             else
             {
