@@ -50,19 +50,14 @@ public class TelegramAuthService : ITelegramAuthService
                 var key = kv[0];
                 var value = kv[1];
                 
-                // Сохраняем hash отдельно
+                // Сохраняем hash отдельно - ТОЛЬКО hash исключается из data-check-string
                 if (key == "hash")
                 {
                     receivedHash = value;
                     continue;
                 }
                 
-                // signature не участвует в HMAC-проверке (WebApp 2.0 MiniApps)
-                if (key == "signature")
-                {
-                    continue;
-                }
-                
+                // ВСЕ остальные параметры (включая signature) участвуют в валидации
                 // ВАЖНО: URLSearchParams в JS автоматически декодирует значения
                 // Telegram подписывает ДЕКОДИРОВАННЫЕ данные
                 var decodedValue = Uri.UnescapeDataString(value);
