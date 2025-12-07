@@ -17,10 +17,18 @@ public class TelegramAuthService : ITelegramAuthService
 
     public TelegramAuthService(IConfiguration configuration, ILogger<TelegramAuthService> logger)
     {
-        _botToken = configuration["Telegram:BotToken"] 
-            ?? throw new InvalidOperationException("Telegram:BotToken is not configured");
+        _botToken = (configuration["Telegram:BotToken"] 
+            ?? throw new InvalidOperationException("Telegram:BotToken is not configured"))
+            .Trim(); // Убираем случайные пробелы - критично для HMAC!
+        
         _logger = logger;
-        _logger.LogInformation("TelegramAuthService initialized with configured bot token");
+        
+        // Логируем первые/последние символы для отладки (не весь токен из соображений безопасности)
+        var tokenPreview = _botToken.Length > 10 
+            ? $"{_botToken.Substring(0, 8)}...{_botToken.Substring(_botToken.Length - 4)}" 
+            : "***";
+        _logger.LogInformation("TelegramAuthService initialized. Token length: {Length}, Preview: {Preview}", 
+            _botToken.Length, tokenPreview);
     }
 
     public bool ValidateInitData(string initData)
