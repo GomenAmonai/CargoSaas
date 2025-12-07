@@ -78,16 +78,13 @@ export const tokenStorage = {
 // API Types
 export interface AuthResponse {
   token: string;
-  user: {
-    id: string;
-    telegramId: number;
-    firstName: string;
-    lastName?: string;
-    username?: string;
-    photoUrl?: string;
-    role: string;
-    tenantId?: string;
-  };
+  userId: string;
+  tenantId: string;
+  firstName: string;
+  username?: string;
+  photoUrl?: string;
+  role: string;
+  isNewUser: boolean;
 }
 
 export interface Track {

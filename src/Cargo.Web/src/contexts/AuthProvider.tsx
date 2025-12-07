@@ -33,20 +33,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Отправляем запрос на бэкенд
       const response: AuthResponse = await api.auth.login(WebApp.initData);
 
-      console.log('✅ Login successful!', response.user);
+      console.log('✅ Login successful!', response);
 
-      // Сохраняем данные пользователя
-      setUser(response.user);
+      // Сохраняем данные пользователя (преобразуем плоскую структуру в user объект)
+      setUser({
+        id: response.userId,
+        telegramId: 0, // TODO: добавить telegramId в AuthResponse если нужно
+        firstName: response.firstName,
+        username: response.username,
+        photoUrl: response.photoUrl,
+        role: response.role,
+        tenantId: response.tenantId,
+      });
       setIsLoading(false);
 
       // Показываем уведомление об успешном входе (если поддерживается)
       if (WebApp.isVersionAtLeast && WebApp.isVersionAtLeast('6.1')) {
         WebApp.showPopup({
           title: 'Welcome! 👋',
-          message: `Hello, ${response.user.firstName}! You are now logged in.`,
+          message: `Hello, ${response.firstName}! You are now logged in.`,
         });
       } else {
-        console.log('✅ Login successful! Welcome,', response.user.firstName);
+        console.log('✅ Login successful! Welcome,', response.firstName);
       }
 
     } catch (err) {

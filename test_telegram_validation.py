@@ -19,7 +19,7 @@ print()
 # Parse init_data (parse_qsl automatically URL-decodes values)
 parsed_data = dict(parse_qsl(init_data))
 received_hash = parsed_data.pop('hash')
-parsed_data.pop('signature', None)  # signature doesn't participate in validation
+# ONLY hash is excluded - signature MUST be included!
 
 print("📦 Parsed data (after removing hash and signature):")
 for key in sorted(parsed_data.keys()):
