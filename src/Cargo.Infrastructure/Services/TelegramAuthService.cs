@@ -72,10 +72,11 @@ public class TelegramAuthService : ITelegramAuthService
             var checkString = string.Join("\n", 
                 data.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}"));
 
-            // Создаем secret_key = HMAC-SHA256(key=bot_token, message="WebAppData")
-            // ВАЖНО: key=bot_token, message="WebAppData" (не наоборот!)
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_botToken));
-            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes("WebAppData"));
+            // Создаем secret_key = HMAC-SHA256(key="WebAppData", message=bot_token)
+            // Согласно документации Telegram: secret_key = HMAC_SHA256("WebAppData", bot_token)
+            // В Python: hmac.new(b'WebAppData', bot_token.encode(), hashlib.sha256)
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("WebAppData"));
+            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes(_botToken));
 
             // Вычисляем hash = HMAC-SHA256(data-check-string, secret_key)
             using var hashHmac = new HMACSHA256(secretKey);
@@ -171,10 +172,11 @@ public class TelegramAuthService : ITelegramAuthService
             var checkString = string.Join("\n", 
                 data.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}"));
 
-            // Создаем secret_key = HMAC-SHA256(key=bot_token, message="WebAppData")
-            // ВАЖНО: key=bot_token, message="WebAppData" (не наоборот!)
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_botToken));
-            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes("WebAppData"));
+            // Создаем secret_key = HMAC-SHA256(key="WebAppData", message=bot_token)
+            // Согласно документации Telegram: secret_key = HMAC_SHA256("WebAppData", bot_token)
+            // В Python: hmac.new(b'WebAppData', bot_token.encode(), hashlib.sha256)
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("WebAppData"));
+            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes(_botToken));
 
             // Вычисляем hash = HMAC-SHA256(data-check-string, secret_key)
             using var hashHmac = new HMACSHA256(secretKey);
