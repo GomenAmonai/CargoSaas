@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { managerApi, managerTokenStorage } from '../api/manager';
+import { tokenStorage } from '../api/client';
 import { ManagerAuthContext, type ManagerAuthContextType, type ManagerUser } from './ManagerAuthContext';
 
 interface ManagerAuthProviderProps {
@@ -16,6 +17,16 @@ export const ManagerAuthProvider = ({ children }: ManagerAuthProviderProps) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Если нет Manager токена, но есть Client токен - используем его
+        // (для Manager зашедших через Telegram WebApp)
+        if (!managerTokenStorage.exists() && tokenStorage.exists()) {
+          const clientToken = tokenStorage.get();
+          if (clientToken) {
+            // Временно сохраняем Client токен как Manager токен
+            managerTokenStorage.set(clientToken);
+          }
+        }
+
         if (!managerTokenStorage.exists()) {
           setIsLoading(false);
           return;

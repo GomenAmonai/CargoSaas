@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { tokenStorage as clientTokenStorage } from './client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://cargosaas-production.up.railway.app/api';
 
@@ -24,7 +25,9 @@ export const managerTokenStorage = {
 // Request interceptor - добавляем JWT token
 managerClient.interceptors.request.use(
   (config) => {
-    const token = managerTokenStorage.get();
+    // Сначала пробуем Manager токен, если нет - используем Client токен
+    // (для Manager зашедших через Telegram WebApp)
+    const token = managerTokenStorage.get() || clientTokenStorage.get();
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }

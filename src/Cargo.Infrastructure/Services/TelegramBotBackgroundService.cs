@@ -120,6 +120,11 @@ public class TelegramBotBackgroundService : IHostedService
             {
                 await HandleCreateManagerCommandAsync(botClient, message, cancellationToken);
             }
+            // Обработка команды /removeManager (вернуть роль Client)
+            else if (messageText.StartsWith("/removeManager", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandleRemoveManagerCommandAsync(botClient, message, cancellationToken);
+            }
             else
             {
                 // Для всех остальных сообщений отправляем инструкцию
@@ -127,7 +132,8 @@ public class TelegramBotBackgroundService : IHostedService
                     chatId: chatId,
                     text: "Available commands:\n" +
                           "/start - Open the app\n" +
-                          "/createManager <telegramId> - Make user a Manager (Admin only)",
+                          "/createManager <telegramId> - Make user a Manager (Admin only)\n" +
+                          "/removeManager <telegramId> - Remove Manager role, return to Client (Admin only)",
                     cancellationToken: cancellationToken
                 );
             }
@@ -323,6 +329,140 @@ public class TelegramBotBackgroundService : IHostedService
                 text: "❌ An error occurred while processing the command. Please try again later.",
                 cancellationToken: cancellationToken
             );
+        }
+    }
+
+    /// <summary>
+    /// Обработчик команды /removeManager <telegramId>
+    /// Убирает роль Manager и возвращает пользователя к роли Client
+    /// </summary>
+    private async Task HandleRemoveManagerCommandAsync(
+        ITelegramBotClient botClient,
+        Telegram.Bot.Types.Message message,
+        CancellationToken cancellationToken)
+    {
+        var chatId = message.Chat.Id;
+        var adminTelegramId = message.From?.Id;
+
+        var messageText = message.Text ?? string.Empty;
+
+        // Парсим команду: /removeManager <telegramId>
+        var parts = messageText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        
+        if (parts.Length < 2)
+        {
+            await botClient.SendTextMessageAsync(
+                chatId: chatId,
+                text: "❌ Usage: /removeManager <telegramId>\n\n" +
+                      "Example: /removeManager 123456789",
+                cancellationToken: cancellationToken
+            );
+            return;
+        }
+
+        if (!long.TryParse(parts[1], out var targetTelegramId))
+        {
+            await botClient.SendTextMessageAsync(
+                chatId: chatId,
+                text: "❌ Invalid Telegram ID format. Please provide a valid number.",
+                cancellationToken: cancellationToken
+            );
+            return;
+        }
+
+        try
+        {
+            // Создаем scope для доступа к сервисам
+            using var scope = _serviceScopeFactory.CreateScope();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+            // Проверяем что отправитель - админ (та же логика что и для /createManager)
+            var adminUser = await userManager.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.TelegramId == adminTelegramId, cancellationToken);
+
+            var adminTelegramIds = _configuration["Admin:TelegramIds"]?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => long.TryParse(id.Trim(), out var parsed) ? parsed : (long?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToList() ?? new List<long>();
+
+            var isAdminByRole = adminUser?.Role == UserRole.SystemAdmin;
+            var isAdminByConfig = adminTelegramId.HasValue && adminTelegramIds.Contains(adminTelegramId.Value);
+
+            if (!isAdminByRole && !isAdminByConfig)
+            {
+                await botClient.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "❌ Access denied. Only SystemAdmin can use this command.",
+                    cancellationToken: cancellationToken
+                );
+                _logger.LogWarning("Unauthorized attempt to use /removeManager by TelegramId: {TelegramId}", adminTelegramId);
+                return;
+            }
+
+            // Ищем пользователя по TelegramId
+            var targetUser = await userManager.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.TelegramId == targetTelegramId, cancellationToken);
+
+            if (targetUser == null)
+            {
+                await botClient.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: $"❌ User with Telegram ID {targetTelegramId} not found in database.",
+                    cancellationToken: cancellationToken
+                );
+                return;
+            }
+
+            // Проверяем текущую роль
+            if (targetUser.Role != UserRole.Manager)
+            {
+                await botClient.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: $"ℹ️ User {targetTelegramId} is not a Manager. Current role: {targetUser.Role}",
+                    cancellationToken: cancellationToken
+                );
+                return;
+            }
+
+            // Возвращаем роль Client
+            targetUser.Role = UserRole.Client;
+            targetUser.UpdatedAt = DateTime.UtcNow;
+            var result = await userManager.UpdateAsync(targetUser);
+
+            if (!result.Succeeded)
+            {
+                await botClient.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: $"❌ Failed to update user role. Errors: {string.Join(", ", result.Errors.Select(e => e.Description))}",
+                    cancellationToken: cancellationToken
+                );
+                _logger.LogError("Failed to remove Manager role for user {TelegramId}: {Errors}", 
+                    targetTelegramId, string.Join(", ", result.Errors.Select(e => e.Description)));
+                return;
+            }
+
+            await botClient.SendTextMessageAsync(
+                chatId: chatId,
+                text: $"✅ Success! User {targetTelegramId} is now a Client again.",
+                cancellationToken: cancellationToken
+            );
+
+            _logger.LogInformation(
+                "User {TelegramId} role changed from Manager to Client by admin {AdminTelegramId}",
+                targetTelegramId, adminTelegramId);
+        }
+        catch (Exception ex)
+        {
+            await botClient.SendTextMessageAsync(
+                chatId: chatId,
+                text: "❌ An error occurred while processing the command. Please try again later.",
+                cancellationToken: cancellationToken
+            );
+            _logger.LogError(ex, "Error processing /removeManager command");
         }
     }
 

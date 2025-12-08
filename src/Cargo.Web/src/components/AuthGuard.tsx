@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 interface AuthGuardProps {
@@ -7,7 +9,18 @@ interface AuthGuardProps {
 
 // Компонент для отображения UI во время загрузки и ошибок авторизации
 export const AuthGuard = ({ children }: AuthGuardProps) => {
-  const { isLoading, error, isAuthenticated, login } = useAuth();
+  const { user, isLoading, error, isAuthenticated, login } = useAuth();
+  const navigate = useNavigate();
+
+  // Редирект Manager/SystemAdmin на Manager Dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      const role = user.role?.toLowerCase();
+      if (role === 'manager' || role === 'systemadmin') {
+        navigate('/manager/dashboard', { replace: true });
+      }
+    }
+  }, [isLoading, isAuthenticated, user, navigate]);
 
   // Показываем спиннер во время загрузки
   if (isLoading) {
@@ -72,6 +85,14 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
         </div>
       </div>
     );
+  }
+
+  // Если Manager/SystemAdmin - не показываем клиентский контент (редирект в useEffect)
+  if (user) {
+    const role = user.role?.toLowerCase();
+    if (role === 'manager' || role === 'systemadmin') {
+      return null; // Редирект в useEffect
+    }
   }
 
   // Если всё ОК - показываем детей (основное приложение)
