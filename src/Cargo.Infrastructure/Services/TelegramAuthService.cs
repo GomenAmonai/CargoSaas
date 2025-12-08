@@ -72,9 +72,10 @@ public class TelegramAuthService : ITelegramAuthService
             var checkString = string.Join("\n", 
                 data.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}"));
 
-            // Создаем secret_key = HMAC-SHA256(bot_token, "WebAppData")
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("WebAppData"));
-            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes(_botToken));
+            // Создаем secret_key = HMAC-SHA256(key=bot_token, message="WebAppData")
+            // ВАЖНО: key=bot_token, message="WebAppData" (не наоборот!)
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_botToken));
+            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes("WebAppData"));
 
             // Вычисляем hash = HMAC-SHA256(data-check-string, secret_key)
             using var hashHmac = new HMACSHA256(secretKey);
@@ -170,9 +171,10 @@ public class TelegramAuthService : ITelegramAuthService
             var checkString = string.Join("\n", 
                 data.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}"));
 
-            // Создаем secret_key = HMAC-SHA256(bot_token, "WebAppData")
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("WebAppData"));
-            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes(_botToken));
+            // Создаем secret_key = HMAC-SHA256(key=bot_token, message="WebAppData")
+            // ВАЖНО: key=bot_token, message="WebAppData" (не наоборот!)
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_botToken));
+            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes("WebAppData"));
 
             // Вычисляем hash = HMAC-SHA256(data-check-string, secret_key)
             using var hashHmac = new HMACSHA256(secretKey);

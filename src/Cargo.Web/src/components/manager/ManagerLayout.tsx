@@ -68,7 +68,7 @@ const ManagerLayout = ({ children }: ManagerLayoutProps) => {
               ) : (
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                   <span className="text-blue-600 font-semibold">
-                    {user.firstName[0]}
+                    {user.firstName?.[0] || 'U'}
                   </span>
                 </div>
               )}
