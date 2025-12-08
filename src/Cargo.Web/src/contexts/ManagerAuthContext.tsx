@@ -1,33 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { managerApi, managerTokenStorage } from '../api/manager';
-
-interface ManagerUser {
-  id: string;
-  firstName: string;
-  username?: string;
-  photoUrl?: string;
-  role: string;
-  tenantId: string;
-}
-
-interface ManagerAuthContextType {
-  user: ManagerUser | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  logout: () => void;
-}
-
-const ManagerAuthContext = createContext<ManagerAuthContextType | undefined>(undefined);
-
-export const useManagerAuth = () => {
-  const context = useContext(ManagerAuthContext);
-  if (!context) {
-    throw new Error('useManagerAuth must be used within ManagerAuthProvider');
-  }
-  return context;
-};
+import { ManagerAuthContext, type ManagerAuthContextType, type ManagerUser } from './ManagerAuthContext';
 
 interface ManagerAuthProviderProps {
   children: ReactNode;

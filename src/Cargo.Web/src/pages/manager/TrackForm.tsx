@@ -97,9 +97,9 @@ const TrackForm = () => {
       }
 
       navigate('/manager/tracks');
-    } catch (err: any) {
-      console.error('Failed to save track:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to save track';
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      const errorMessage = error.response?.data?.message || 'Failed to save track';
       setError(errorMessage);
     } finally {
       setIsSaving(false);

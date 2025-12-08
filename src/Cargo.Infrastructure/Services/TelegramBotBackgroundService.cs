@@ -219,16 +219,31 @@ public class TelegramBotBackgroundService : IHostedService
             using var scope = _serviceScopeFactory.CreateScope();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
-            // Проверяем что отправитель - админ (SystemAdmin или можно сделать проверку по списку админов)
+            // Проверяем что отправитель - админ
+            // 1. Проверяем по роли SystemAdmin в БД
+            // 2. Или по списку админов из конфигурации (для первого запуска)
             var adminUser = await userManager.Users
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(u => u.TelegramId == adminTelegramId, cancellationToken);
 
-            if (adminUser == null || adminUser.Role != UserRole.SystemAdmin)
+            // Получаем список админов из конфигурации (Telegram IDs через запятую)
+            var adminTelegramIds = _configuration["Admin:TelegramIds"]?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => long.TryParse(id.Trim(), out var parsed) ? parsed : (long?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToList() ?? new List<long>();
+
+            var isAdminByRole = adminUser?.Role == UserRole.SystemAdmin;
+            var isAdminByConfig = adminTelegramIds.Contains(adminTelegramId ?? 0);
+
+            if (!isAdminByRole && !isAdminByConfig)
             {
                 await botClient.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "❌ Access denied. Only SystemAdmin can use this command.",
+                    text: "❌ Access denied. Only SystemAdmin can use this command.\n\n" +
+                          "To become SystemAdmin, set your Telegram ID in Railway environment variables:\n" +
+                          "`Admin__TelegramIds=your_telegram_id`",
                     cancellationToken: cancellationToken
                 );
                 _logger.LogWarning("Unauthorized attempt to use /createManager by TelegramId: {TelegramId}", adminTelegramId);

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useManagerAuth } from '../../contexts/ManagerAuthContext';
+import { useManagerAuth } from '../../hooks/useManagerAuth';
 
 interface ManagerLayoutProps {
   children: ReactNode;

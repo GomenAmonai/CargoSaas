@@ -17,7 +17,9 @@ const ManagerLogin = () => {
     // Инициализируем Telegram Login Widget
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', 'YOUR_BOT_USERNAME'); // TODO: Заменить на реальный username бота
+    // Bot username из переменной окружения или дефолтное значение
+    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'YOUR_BOT_USERNAME';
+    script.setAttribute('data-telegram-login', botUsername);
     script.setAttribute('data-size', 'large');
     script.setAttribute('data-radius', '10');
     script.setAttribute('data-userpic', 'true');
@@ -31,23 +33,25 @@ const ManagerLogin = () => {
     }
 
     // Глобальная функция для обработки callback от Telegram
-    (window as any).onTelegramAuth = async (user: TelegramLoginData) => {
+    interface WindowWithTelegramAuth extends Window {
+      onTelegramAuth?: (user: TelegramLoginData) => Promise<void>;
+    }
+    
+    const windowWithAuth = window as WindowWithTelegramAuth;
+    
+    windowWithAuth.onTelegramAuth = async (user: TelegramLoginData) => {
       try {
         setIsLoading(true);
         setError(null);
 
-        console.log('Telegram auth data received:', user);
-
         // Отправляем данные на бэкенд
-        const response = await managerApi.auth.loginWithTelegram(user);
-
-        console.log('Login successful:', response);
+        await managerApi.auth.loginWithTelegram(user);
 
         // Редирект на dashboard
         navigate('/manager/dashboard', { replace: true });
-      } catch (err: any) {
-        console.error('Login failed:', err);
-        const errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
+      } catch (err) {
+        const error = err as { response?: { data?: { message?: string } } };
+        const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
         setError(errorMessage);
         setIsLoading(false);
       }
@@ -55,7 +59,7 @@ const ManagerLogin = () => {
 
     return () => {
       // Cleanup
-      delete (window as any).onTelegramAuth;
+      delete windowWithAuth.onTelegramAuth;
     };
   }, [navigate]);
 

@@ -1,6 +1,6 @@
 import { TelegramProvider } from './contexts/TelegramProvider';
 import { AuthProvider } from './contexts/AuthProvider';
-import { ManagerAuthProvider } from './contexts/ManagerAuthContext';
+import { ManagerAuthProvider } from './contexts/ManagerAuthContext.tsx';
 import { useTelegram } from './hooks/useTelegram';
 import { AuthGuard } from './components/AuthGuard';
 import ManagerRoute from './components/manager/ManagerRoute';

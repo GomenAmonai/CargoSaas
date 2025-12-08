@@ -45,9 +45,9 @@ const ImportExcel = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (err: any) {
-      console.error('Upload failed:', err);
-      alert(err.response?.data?.message || 'Failed to upload file');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      alert(error.response?.data?.message || 'Failed to upload file');
     } finally {
       setIsUploading(false);
     }

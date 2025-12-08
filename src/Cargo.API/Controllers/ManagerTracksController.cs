@@ -192,16 +192,19 @@ public class ManagerTracksController : ControllerBase
             // Обновляем поля
             track.TrackingNumber = request.TrackingNumber;
             track.ClientCode = request.ClientCode;
-            track.Status = request.Status;
-            track.Description = request.Description;
+            if (request.Status.HasValue)
+            {
+                track.Status = request.Status.Value;
+            }
+            if (request.Description != null) track.Description = request.Description;
             track.Weight = request.Weight;
             track.DeclaredValue = request.DeclaredValue;
-            track.OriginCountry = request.OriginCountry;
-            track.DestinationCountry = request.DestinationCountry;
+            if (request.OriginCountry != null) track.OriginCountry = request.OriginCountry;
+            if (request.DestinationCountry != null) track.DestinationCountry = request.DestinationCountry;
             track.ShippedAt = request.ShippedAt;
             track.EstimatedDeliveryAt = request.EstimatedDeliveryAt;
             track.ActualDeliveryAt = request.ActualDeliveryAt;
-            track.Notes = request.Notes;
+            if (request.Notes != null) track.Notes = request.Notes;
             track.UpdatedAt = DateTime.UtcNow;
 
             await _unitOfWork.Tracks.UpdateAsync(track, cancellationToken);
@@ -279,41 +282,4 @@ public class ManagerTracksController : ControllerBase
             UpdatedAt = track.UpdatedAt
         };
     }
-}
-
-/// <summary>
-/// DTO для создания нового трека
-/// </summary>
-public class CreateTrackDto
-{
-    public string TrackingNumber { get; set; } = string.Empty;
-    public string ClientCode { get; set; } = string.Empty;
-    public TrackStatus Status { get; set; } = TrackStatus.Created;
-    public string? Description { get; set; }
-    public decimal? Weight { get; set; }
-    public decimal? DeclaredValue { get; set; }
-    public string? OriginCountry { get; set; }
-    public string? DestinationCountry { get; set; }
-    public DateTime? ShippedAt { get; set; }
-    public DateTime? EstimatedDeliveryAt { get; set; }
-    public string? Notes { get; set; }
-}
-
-/// <summary>
-/// DTO для обновления существующего трека
-/// </summary>
-public class UpdateTrackDto
-{
-    public string TrackingNumber { get; set; } = string.Empty;
-    public string ClientCode { get; set; } = string.Empty;
-    public TrackStatus Status { get; set; }
-    public string? Description { get; set; }
-    public decimal? Weight { get; set; }
-    public decimal? DeclaredValue { get; set; }
-    public string? OriginCountry { get; set; }
-    public string? DestinationCountry { get; set; }
-    public DateTime? ShippedAt { get; set; }
-    public DateTime? EstimatedDeliveryAt { get; set; }
-    public DateTime? ActualDeliveryAt { get; set; }
-    public string? Notes { get; set; }
 }

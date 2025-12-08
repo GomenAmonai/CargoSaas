@@ -29,13 +29,15 @@ public class TrackDto
 /// </summary>
 public class CreateTrackDto
 {
-    public string ClientCode { get; set; } = string.Empty;
     public string TrackingNumber { get; set; } = string.Empty;
+    public string ClientCode { get; set; } = string.Empty;
+    public TrackStatus Status { get; set; } = TrackStatus.Created;
     public string? Description { get; set; }
     public decimal? Weight { get; set; }
     public decimal? DeclaredValue { get; set; }
     public string? OriginCountry { get; set; }
     public string? DestinationCountry { get; set; }
+    public DateTime? ShippedAt { get; set; }
     public DateTime? EstimatedDeliveryAt { get; set; }
     public string? Notes { get; set; }
 }
@@ -45,10 +47,14 @@ public class CreateTrackDto
 /// </summary>
 public class UpdateTrackDto
 {
-    public string? Description { get; set; }
+    public string TrackingNumber { get; set; } = string.Empty;
+    public string ClientCode { get; set; } = string.Empty;
     public TrackStatus? Status { get; set; }
+    public string? Description { get; set; }
     public decimal? Weight { get; set; }
     public decimal? DeclaredValue { get; set; }
+    public string? OriginCountry { get; set; }
+    public string? DestinationCountry { get; set; }
     public DateTime? ShippedAt { get; set; }
     public DateTime? EstimatedDeliveryAt { get; set; }
     public DateTime? ActualDeliveryAt { get; set; }

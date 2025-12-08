@@ -143,6 +143,8 @@ public class ClientAuthController : ControllerBase
                 user.IsPremium = telegramUser.IsPremium;
                 user.LastLoginAt = DateTime.UtcNow;
                 user.UpdatedAt = DateTime.UtcNow;
+                
+                // user гарантированно не null здесь (проверено выше)
 
                 // Назначаем ClientCode, если его еще нет (старые пользователи до миграции)
                 if (string.IsNullOrWhiteSpace(user.ClientCode))
