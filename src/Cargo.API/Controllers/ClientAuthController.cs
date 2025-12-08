@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Cargo.API.DTOs;
+using Cargo.Core;
 using Cargo.Core.Entities;
 using Cargo.Core.Enums;
 using Cargo.Core.Interfaces;
@@ -114,7 +115,7 @@ public class ClientAuthController : ControllerBase
                     UpdatedAt = DateTime.UtcNow,
                     
                     // TenantId будет установлен автоматически через TenantProvider
-                    TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111") // Тестовый тенант
+                    TenantId = AppConstants.Tenants.TestTenantId
                 };
 
                 // Генерируем ClientCode для нового пользователя
@@ -152,7 +153,7 @@ public class ClientAuthController : ControllerBase
                 // Для старых клиентов без TenantId привязываем к тестовому тенанту
                 if (!user.TenantId.HasValue)
                 {
-                    user.TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+                    user.TenantId = AppConstants.Tenants.TestTenantId;
                 }
 
                 var result = await _userManager.UpdateAsync(user);
@@ -205,12 +206,10 @@ public class ClientAuthController : ControllerBase
     /// </summary>
     private async Task<string> GenerateUniqueClientCodeAsync(CancellationToken cancellationToken)
     {
-        const int maxAttempts = 10;
-
-        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        for (var attempt = 0; attempt < AppConstants.ClientCodes.MaxGenerationAttempts; attempt++)
         {
-            var raw = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
-            var candidate = $"CLT-{raw}";
+            var raw = Guid.NewGuid().ToString("N")[..AppConstants.ClientCodes.RandomPartLength].ToUpperInvariant();
+            var candidate = $"{AppConstants.ClientCodes.Prefix}{raw}";
 
             var exists = await _userManager.Users
                 .IgnoreQueryFilters()
@@ -222,7 +221,7 @@ public class ClientAuthController : ControllerBase
             }
         }
 
-        throw new InvalidOperationException("Failed to generate unique ClientCode after several attempts");
+        throw new InvalidOperationException($"Failed to generate unique ClientCode after {AppConstants.ClientCodes.MaxGenerationAttempts} attempts");
     }
 
     /// <summary>
@@ -254,7 +253,7 @@ public class ClientAuthController : ControllerBase
                 {
                     TenantId = tenantId,
                     ClientCode = user.ClientCode,
-                    TrackingNumber = $"DEMO-{user.ClientCode}-1",
+                    TrackingNumber = $"{AppConstants.TrackingNumbers.DemoPrefix}{user.ClientCode}-1",
                     Status = TrackStatus.Created,
                     Description = "Demo: New shipment created",
                     OriginCountry = "China",
@@ -267,7 +266,7 @@ public class ClientAuthController : ControllerBase
                 {
                     TenantId = tenantId,
                     ClientCode = user.ClientCode,
-                    TrackingNumber = $"DEMO-{user.ClientCode}-2",
+                    TrackingNumber = $"{AppConstants.TrackingNumbers.DemoPrefix}{user.ClientCode}-2",
                     Status = TrackStatus.InTransit,
                     Description = "Demo: Package is on the way",
                     OriginCountry = "Turkey",
@@ -281,7 +280,7 @@ public class ClientAuthController : ControllerBase
                 {
                     TenantId = tenantId,
                     ClientCode = user.ClientCode,
-                    TrackingNumber = $"DEMO-{user.ClientCode}-3",
+                    TrackingNumber = $"{AppConstants.TrackingNumbers.DemoPrefix}{user.ClientCode}-3",
                     Status = TrackStatus.Delivered,
                     Description = "Demo: Recently delivered shipment",
                     OriginCountry = "Germany",

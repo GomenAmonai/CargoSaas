@@ -1,4 +1,10 @@
+using Cargo.Core;
+using Cargo.Core.Entities;
+using Cargo.Core.Enums;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
@@ -16,15 +22,18 @@ public class TelegramBotBackgroundService : IHostedService
 {
     private readonly ILogger<TelegramBotBackgroundService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private ITelegramBotClient? _botClient;
     private CancellationTokenSource? _cancellationTokenSource;
 
     public TelegramBotBackgroundService(
         ILogger<TelegramBotBackgroundService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
         _configuration = configuration;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -106,12 +115,19 @@ public class TelegramBotBackgroundService : IHostedService
             {
                 await HandleStartCommandAsync(botClient, chatId, cancellationToken);
             }
+            // Обработка команды /createManager
+            else if (messageText.StartsWith("/createManager", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandleCreateManagerCommandAsync(botClient, message, cancellationToken);
+            }
             else
             {
                 // Для всех остальных сообщений отправляем инструкцию
                 await botClient.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Please use /start to begin or click the button to open the app.",
+                    text: "Available commands:\n" +
+                          "/start - Open the app\n" +
+                          "/createManager <telegramId> - Make user a Manager (Admin only)",
                     cancellationToken: cancellationToken
                 );
             }
@@ -158,6 +174,138 @@ public class TelegramBotBackgroundService : IHostedService
         );
 
         _logger.LogInformation("Sent welcome message to chat {ChatId}", chatId);
+    }
+
+    /// <summary>
+    /// Обработчик команды /createManager <telegramId>
+    /// Позволяет админу назначить роль Manager существующему пользователю
+    /// </summary>
+    private async Task HandleCreateManagerCommandAsync(
+        ITelegramBotClient botClient,
+        Message message,
+        CancellationToken cancellationToken)
+    {
+        var chatId = message.Chat.Id;
+        var adminTelegramId = message.From?.Id;
+        var messageText = message.Text ?? string.Empty;
+
+        // Парсим команду: /createManager <telegramId>
+        var parts = messageText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        
+        if (parts.Length < 2)
+        {
+            await botClient.SendTextMessageAsync(
+                chatId: chatId,
+                text: "❌ Usage: /createManager <telegramId>\n\n" +
+                      "Example: /createManager 123456789",
+                cancellationToken: cancellationToken
+            );
+            return;
+        }
+
+        if (!long.TryParse(parts[1], out var targetTelegramId))
+        {
+            await botClient.SendTextMessageAsync(
+                chatId: chatId,
+                text: "❌ Invalid Telegram ID format. Please provide a valid number.",
+                cancellationToken: cancellationToken
+            );
+            return;
+        }
+
+        try
+        {
+            // Создаем scope для доступа к сервисам
+            using var scope = _serviceScopeFactory.CreateScope();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+            // Проверяем что отправитель - админ (SystemAdmin или можно сделать проверку по списку админов)
+            var adminUser = await userManager.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.TelegramId == adminTelegramId, cancellationToken);
+
+            if (adminUser == null || adminUser.Role != UserRole.SystemAdmin)
+            {
+                await botClient.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "❌ Access denied. Only SystemAdmin can use this command.",
+                    cancellationToken: cancellationToken
+                );
+                _logger.LogWarning("Unauthorized attempt to use /createManager by TelegramId: {TelegramId}", adminTelegramId);
+                return;
+            }
+
+            // Ищем пользователя по TelegramId
+            var targetUser = await userManager.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.TelegramId == targetTelegramId, cancellationToken);
+
+            if (targetUser == null)
+            {
+                await botClient.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: $"❌ User with Telegram ID {targetTelegramId} not found in database.\n\n" +
+                          "User must first log in through the app to be created.",
+                    cancellationToken: cancellationToken
+                );
+                return;
+            }
+
+            // Проверяем текущую роль
+            if (targetUser.Role == UserRole.Manager)
+            {
+                await botClient.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: $"ℹ️ User {targetTelegramId} is already a Manager.",
+                    cancellationToken: cancellationToken
+                );
+                return;
+            }
+
+            // Назначаем роль Manager
+            targetUser.Role = UserRole.Manager;
+            targetUser.UpdatedAt = DateTime.UtcNow;
+
+            var result = await userManager.UpdateAsync(targetUser);
+
+            if (result.Succeeded)
+            {
+                _logger.LogInformation(
+                    "User {TelegramId} promoted to Manager by admin {AdminTelegramId}",
+                    targetTelegramId,
+                    adminTelegramId
+                );
+
+                await botClient.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: $"✅ Success! User {targetTelegramId} is now a Manager.\n\n" +
+                          $"Name: {targetUser.FirstName} {targetUser.LastName}\n" +
+                          $"Username: @{targetUser.UserName}\n" +
+                          $"Role: {targetUser.Role}",
+                    cancellationToken: cancellationToken
+                );
+            }
+            else
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogError("Failed to update user role: {Errors}", errors);
+                
+                await botClient.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: $"❌ Failed to update user role: {errors}",
+                    cancellationToken: cancellationToken
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing /createManager command");
+            await botClient.SendTextMessageAsync(
+                chatId: chatId,
+                text: "❌ An error occurred while processing the command. Please try again later.",
+                cancellationToken: cancellationToken
+            );
+        }
     }
 
     /// <summary>

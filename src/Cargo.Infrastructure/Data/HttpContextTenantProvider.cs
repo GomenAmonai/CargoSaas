@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Cargo.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -39,7 +40,7 @@ public class HttpContextTenantProvider : ITenantProvider
         }
 
         // Извлекаем tenantId claim
-        var tenantIdClaim = httpContext.User.FindFirst("tenantId");
+        var tenantIdClaim = httpContext.User.FindFirst(AppConstants.Jwt.TenantIdClaimType);
         
         if (tenantIdClaim == null)
         {

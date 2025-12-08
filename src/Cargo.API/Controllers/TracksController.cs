@@ -169,7 +169,11 @@ public class TracksController : ControllerBase
         }
 
         if (dto.Description != null) track.Description = dto.Description;
-        if (dto.Status.HasValue) track.Status = dto.Status.Value;
+        // Status is optional in UpdateTrackDto (TrackStatus?), only update if provided
+        if (dto.Status != null)
+        {
+            track.Status = (TrackStatus)dto.Status;
+        }
         if (dto.Weight.HasValue) track.Weight = dto.Weight;
         if (dto.DeclaredValue.HasValue) track.DeclaredValue = dto.DeclaredValue;
         if (dto.ShippedAt.HasValue) track.ShippedAt = dto.ShippedAt;

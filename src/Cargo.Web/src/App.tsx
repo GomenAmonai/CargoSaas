@@ -1,18 +1,24 @@
 import { TelegramProvider } from './contexts/TelegramProvider';
 import { AuthProvider } from './contexts/AuthProvider';
+import { ManagerAuthProvider } from './contexts/ManagerAuthContext';
 import { useTelegram } from './hooks/useTelegram';
 import { AuthGuard } from './components/AuthGuard';
+import ManagerRoute from './components/manager/ManagerRoute';
 import Home from './pages/Home';
 import TrackList from './pages/TrackList';
 import TrackDetails from './pages/TrackDetails';
+import ManagerLogin from './pages/manager/ManagerLogin';
+import Dashboard from './pages/manager/Dashboard';
+import ManagerTrackList from './pages/manager/TrackList';
+import TrackForm from './pages/manager/TrackForm';
+import ImportExcel from './pages/manager/ImportExcel';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 
-// Компонент для проверки готовности Telegram SDK
-const AppContent = () => {
-  const { isReady } = useTelegram(); // isTelegramApp временно не используется для debug
+// Компонент для проверки готовности Telegram SDK (для Telegram клиентов)
+const TelegramAppContent = () => {
+  const { isReady } = useTelegram();
 
-  // Показываем загрузку пока SDK инициализируется
   if (!isReady) {
     return (
       <div className="min-h-screen bg-tg-bg flex items-center justify-center">
@@ -24,17 +30,14 @@ const AppContent = () => {
     );
   }
 
-  // Всё хорошо - показываем приложение с AuthGuard и роутингом
   return (
     <AuthProvider>
       <AuthGuard>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/tracks" element={<TrackList />} />
-            <Route path="/tracks/:id" element={<TrackDetails />} />
-          </Routes>
-        </BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/tracks" element={<TrackList />} />
+          <Route path="/tracks/:id" element={<TrackDetails />} />
+        </Routes>
       </AuthGuard>
     </AuthProvider>
   );
@@ -42,9 +45,38 @@ const AppContent = () => {
 
 function App() {
   return (
-    <TelegramProvider>
-      <AppContent />
-    </TelegramProvider>
+    <BrowserRouter>
+      <Routes>
+        {/* Manager Routes (без Telegram SDK) */}
+        <Route path="/manager/login" element={<ManagerLogin />} />
+        <Route
+          path="/manager/*"
+          element={
+            <ManagerAuthProvider>
+              <ManagerRoute>
+                <Routes>
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="tracks" element={<ManagerTrackList />} />
+                  <Route path="tracks/new" element={<TrackForm />} />
+                  <Route path="tracks/:id/edit" element={<TrackForm />} />
+                  <Route path="import" element={<ImportExcel />} />
+                </Routes>
+              </ManagerRoute>
+            </ManagerAuthProvider>
+          }
+        />
+
+        {/* Telegram Client Routes (с Telegram SDK) */}
+        <Route
+          path="/*"
+          element={
+            <TelegramProvider>
+              <TelegramAppContent />
+            </TelegramProvider>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

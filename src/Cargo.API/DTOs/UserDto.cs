@@ -14,6 +14,7 @@ public class UserDto
     public string? LanguageCode { get; set; }
     public bool IsPremium { get; set; }
     public string Role { get; set; } = string.Empty;
+    public Guid? TenantId { get; set; }
     public bool IsActive { get; set; }
     public DateTime LastLoginAt { get; set; }
     public DateTime CreatedAt { get; set; }

@@ -1,4 +1,6 @@
 using System.Text;
+using Cargo.API.Middleware;
+using Cargo.Core;
 using Cargo.Core.Entities;
 using Cargo.Core.Interfaces;
 using Cargo.Infrastructure.Data;
@@ -152,14 +154,29 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddHostedService<TelegramBotBackgroundService>();
 
 // CORS configuration
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+    ?? new[] { "http://localhost:5173", "http://localhost:3000" }; // Fallback для локальной разработки
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowSpecificOrigins", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // Для JWT токенов
     });
+    
+    // Для разработки - более мягкая политика
+    if (builder.Environment.IsDevelopment())
+    {
+        options.AddPolicy("AllowAll", policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+    }
 });
 
 var app = builder.Build();
@@ -178,14 +195,14 @@ using (var scope = app.Services.CreateScope())
         logger.LogInformation("Database migrations applied successfully");
         
         // === SEED: Создаем тестового тенанта для MVP ===
-        var mockTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-        if (!context.Tenants.Any(t => t.Id == mockTenantId))
+        var testTenantId = AppConstants.Tenants.TestTenantId;
+        if (!context.Tenants.Any(t => t.Id == testTenantId))
         {
             context.Tenants.Add(new Cargo.Core.Entities.Tenant 
             { 
-                Id = mockTenantId,
-                TenantId = mockTenantId, // Сам себе тенант
-                TenantCode = "TEST",
+                Id = testTenantId,
+                TenantId = testTenantId, // Сам себе тенант
+                TenantCode = AppConstants.Tenants.TestTenantCode,
                 CompanyName = "Test Cargo Company",
                 ContactEmail = "test@cargo.com",
                 IsActive = true,
@@ -193,7 +210,7 @@ using (var scope = app.Services.CreateScope())
                 UpdatedAt = DateTime.UtcNow
             });
             context.SaveChanges();
-            logger.LogInformation("Test tenant created with ID: {TenantId}", mockTenantId);
+            logger.LogInformation("Test tenant created with ID: {TenantId}", testTenantId);
         }
         else
         {
@@ -211,6 +228,9 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline
 // ВАЖНО: UseForwardedHeaders ПЕРВЫМ для корректной работы на Railway
 app.UseForwardedHeaders();
+
+// Global exception handling middleware
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Swagger нужен всегда, пока мы тестируем
 app.UseSwagger();
@@ -230,7 +250,9 @@ if (app.Environment.IsDevelopment())
 // UseHttpsRedirection вызывает 405 Method Not Allowed для POST запросов
 // app.UseHttpsRedirection();
 
-app.UseCors("AllowAll");
+// CORS: для production используем белый список, для dev - разрешаем все
+var corsPolicy = app.Environment.IsDevelopment() ? "AllowAll" : "AllowSpecificOrigins";
+app.UseCors(corsPolicy);
 
 // Authentication & Authorization
 app.UseAuthentication();

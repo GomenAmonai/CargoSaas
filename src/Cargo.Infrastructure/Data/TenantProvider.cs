@@ -1,3 +1,5 @@
+using Cargo.Core;
+
 namespace Cargo.Infrastructure.Data;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace Cargo.Infrastructure.Data;
 public class TenantProvider : ITenantProvider
 {
     // Тестовый тенант для MVP (совпадает с seed данными)
-    private Guid _currentTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private Guid _currentTenantId = AppConstants.Tenants.TestTenantId;
 
     public Guid GetCurrentTenantId()
     {

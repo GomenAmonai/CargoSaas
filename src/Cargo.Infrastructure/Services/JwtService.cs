@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Cargo.Core;
 using Cargo.Core.Entities;
 using Cargo.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -24,7 +25,7 @@ public class JwtService : IJwtService
             ?? throw new InvalidOperationException("Jwt:SecretKey is not configured");
         _issuer = configuration["Jwt:Issuer"] ?? "CargoAPI";
         _audience = configuration["Jwt:Audience"] ?? "CargoClient";
-        _expirationMinutes = int.Parse(configuration["Jwt:ExpirationMinutes"] ?? "43200"); // 30 дней по умолчанию
+        _expirationMinutes = int.Parse(configuration["Jwt:ExpirationMinutes"] ?? AppConstants.Jwt.DefaultExpirationMinutes.ToString());
     }
 
     public string GenerateToken(AppUser user)
@@ -42,13 +43,13 @@ public class JwtService : IJwtService
         // TenantId (если есть)
         if (user.TenantId.HasValue)
         {
-            claims.Add(new Claim("tenantId", user.TenantId.Value.ToString()));
+            claims.Add(new Claim(AppConstants.Jwt.TenantIdClaimType, user.TenantId.Value.ToString()));
         }
 
         // TelegramId (если есть)
         if (user.TelegramId.HasValue)
         {
-            claims.Add(new Claim("telegramId", user.TelegramId.Value.ToString()));
+            claims.Add(new Claim(AppConstants.Jwt.TelegramIdClaimType, user.TelegramId.Value.ToString()));
         }
 
         // FirstName
