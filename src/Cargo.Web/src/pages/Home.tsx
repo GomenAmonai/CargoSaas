@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { useAuth } from '../hooks/useAuth';
+import ClientLayout from '../components/ClientLayout';
 
 const Home = () => {
   const { webApp } = useTelegram();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const handleMyTracksClick = () => {
@@ -12,14 +13,6 @@ const Home = () => {
     if (webApp.HapticFeedback) {
       webApp.HapticFeedback.impactOccurred('light');
     }
-  };
-
-  const handleLogout = () => {
-    webApp.showConfirm('Are you sure you want to log out?', (confirmed) => {
-      if (confirmed) {
-        logout();
-      }
-    });
   };
 
   const handleCopyClientCode = async () => {
@@ -37,34 +30,35 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-tg-bg flex flex-col">
-      {/* Header */}
-      <div className="p-6 pb-8">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-tg-text mb-2">
-              Welcome{user?.firstName ? `, ${user.firstName}` : ''}! 👋
-            </h1>
-            <p className="text-tg-hint text-sm">
-              Track your cargo shipments with ease
-            </p>
-          </div>
-
-          {/* User Avatar */}
-          {user?.photoUrl && (
-            <div className="ml-4">
-              <img
-                src={user.photoUrl}
-                alt={user.firstName}
-                className="w-12 h-12 rounded-full border-2 border-tg-button"
-              />
+    <ClientLayout>
+      <div className="min-h-screen bg-tg-bg flex flex-col">
+        {/* Header */}
+        <div className="p-6 pb-8">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-tg-text mb-2">
+                Welcome{user?.firstName ? `, ${user.firstName}` : ''}! 👋
+              </h1>
+              <p className="text-tg-hint text-sm">
+                Track your cargo shipments with ease
+              </p>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 px-6">
+            {/* User Avatar */}
+            {user?.photoUrl && (
+              <div className="ml-4">
+                <img
+                  src={user.photoUrl}
+                  alt={user.firstName}
+                  className="w-12 h-12 rounded-full border-2 border-tg-button"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 px-6">
         {/* Client Code Card */}
         {user?.clientCode && (
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-6 mb-4 shadow-lg text-white relative overflow-hidden">
@@ -163,15 +157,6 @@ const Home = () => {
                 </div>
               )}
             </div>
-
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="w-full bg-red-500 text-white rounded-lg py-2 px-4 text-sm font-medium 
-                       hover:bg-red-600 active:scale-95 transition-all duration-150"
-            >
-              🚪 Logout
-            </button>
           </div>
         )}
       </div>
@@ -183,6 +168,7 @@ const Home = () => {
         </p>
       </div>
     </div>
+    </ClientLayout>
   );
 };
 

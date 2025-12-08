@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, type Track } from '../api/client';
 import { useTelegram } from '../hooks/useTelegram';
 import { TrackCard } from '../components/TrackCard';
+import ClientLayout from '../components/ClientLayout';
 
 const TrackList = () => {
   const { webApp } = useTelegram();
@@ -47,16 +48,17 @@ const TrackList = () => {
   };
 
   return (
-    <div className="min-h-screen bg-tg-bg flex flex-col">
-      <div className="p-6 pb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-tg-text">My Tracks</h1>
-        <button
-          onClick={handleRefresh}
-          className="text-sm text-tg-link font-medium"
-        >
-          Refresh
-        </button>
-      </div>
+    <ClientLayout>
+      <div className="min-h-screen bg-tg-bg flex flex-col">
+        <div className="p-6 pb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-tg-text">My Tracks</h1>
+          <button
+            onClick={handleRefresh}
+            className="text-sm text-tg-link font-medium"
+          >
+            Refresh
+          </button>
+        </div>
 
       <div className="flex-1 px-4 pb-4">
         {isLoading && (
@@ -107,6 +109,7 @@ const TrackList = () => {
         )}
       </div>
     </div>
+    </ClientLayout>
   );
 };
 

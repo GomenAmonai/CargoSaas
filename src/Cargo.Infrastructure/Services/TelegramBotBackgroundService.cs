@@ -235,7 +235,10 @@ public class TelegramBotBackgroundService : IHostedService
                 .ToList() ?? new List<long>();
 
             var isAdminByRole = adminUser?.Role == UserRole.SystemAdmin;
-            var isAdminByConfig = adminTelegramIds.Contains(adminTelegramId ?? 0);
+            
+            // КРИТИЧНО: Проверяем что adminTelegramId не null перед проверкой в списке
+            // Если null, то не проверяем в списке (избегаем проверки нуля)
+            var isAdminByConfig = adminTelegramId.HasValue && adminTelegramIds.Contains(adminTelegramId.Value);
 
             if (!isAdminByRole && !isAdminByConfig)
             {

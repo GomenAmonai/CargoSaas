@@ -133,42 +133,63 @@ public class ManagerAuthController : ControllerBase
 
     /// <summary>
     /// Валидация данных от Telegram Login Widget
-    /// Используется тот же HMAC-SHA256 алгоритм что и для WebApp
+    /// Используется HMAC-SHA256 для проверки подписи
     /// </summary>
     private bool ValidateTelegramLoginWidget(TelegramLoginDto data)
     {
         try
         {
-            // Формируем строку для валидации (как query string без hash)
-            var checkString = $"auth_date={data.AuthDate}\n" +
-                              $"first_name={data.FirstName}\n" +
-                              $"id={data.Id}";
+            // Проверяем что все обязательные поля присутствуют
+            if (data.Id <= 0 || 
+                string.IsNullOrEmpty(data.FirstName) || 
+                string.IsNullOrEmpty(data.Hash) || 
+                data.AuthDate <= 0)
+            {
+                _logger.LogWarning("Missing required fields in Login Widget data");
+                return false;
+            }
+
+            // Проверяем что данные не устарели (auth_date не старше 24 часов)
+            var authDateTime = DateTimeOffset.FromUnixTimeSeconds(data.AuthDate);
+            var now = DateTimeOffset.UtcNow;
+            if (now - authDateTime > TimeSpan.FromHours(24))
+            {
+                _logger.LogWarning("Login Widget data expired. AuthDate: {AuthDate}, Now: {Now}", 
+                    authDateTime, now);
+                return false;
+            }
+
+            // Формируем словарь данных для валидации (все поля кроме hash)
+            var dataDict = new Dictionary<string, string>
+            {
+                { "auth_date", data.AuthDate.ToString() },
+                { "first_name", data.FirstName },
+                { "id", data.Id.ToString() }
+            };
 
             if (!string.IsNullOrEmpty(data.LastName))
             {
-                checkString += $"\nlast_name={data.LastName}";
+                dataDict["last_name"] = data.LastName;
             }
 
             if (!string.IsNullOrEmpty(data.PhotoUrl))
             {
-                checkString += $"\nphoto_url={data.PhotoUrl}";
+                dataDict["photo_url"] = data.PhotoUrl;
             }
 
             if (!string.IsNullOrEmpty(data.Username))
             {
-                checkString += $"\nusername={data.Username}";
+                dataDict["username"] = data.Username;
             }
 
-            // Проверяем через существующий сервис
-            // (нужно адаптировать ITelegramAuthService для поддержки Login Widget)
-            // Пока упрощенная валидация - проверяем что все обязательные поля присутствуют
-            
-            var isValid = data.Id > 0 &&
-                          !string.IsNullOrEmpty(data.FirstName) &&
-                          !string.IsNullOrEmpty(data.Hash) &&
-                          data.AuthDate > 0;
+            // Валидируем через HMAC-SHA256
+            var isValid = _telegramAuthService.ValidateLoginWidget(dataDict, data.Hash);
 
-            // TODO: Добавить полную HMAC-SHA256 валидацию когда будет готов ITelegramAuthService.ValidateLoginWidget()
+            if (!isValid)
+            {
+                _logger.LogWarning("HMAC-SHA256 validation failed for Login Widget data. TelegramId: {TelegramId}", 
+                    data.Id);
+            }
 
             return isValid;
         }

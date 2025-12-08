@@ -151,4 +151,52 @@ public class TelegramAuthService : ITelegramAuthService
         var hashBytes = hmac.ComputeHash(dataBytes);
         return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
     }
+
+    /// <summary>
+    /// Валидирует данные от Telegram Login Widget
+    /// Документация: https://core.telegram.org/widgets/login#checking-authorization
+    /// </summary>
+    public bool ValidateLoginWidget(Dictionary<string, string> data, string receivedHash)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(receivedHash))
+            {
+                _logger.LogWarning("Hash not found in Login Widget data");
+                return false;
+            }
+
+            // Сортируем и создаем data-check-string (все поля кроме hash, отсортированные по ключу)
+            var checkString = string.Join("\n", 
+                data.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value}"));
+
+            // Создаем secret_key = HMAC-SHA256(bot_token, "WebAppData")
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("WebAppData"));
+            var secretKey = hmac.ComputeHash(Encoding.UTF8.GetBytes(_botToken));
+
+            // Вычисляем hash = HMAC-SHA256(data-check-string, secret_key)
+            using var hashHmac = new HMACSHA256(secretKey);
+            var hashBytes = hashHmac.ComputeHash(Encoding.UTF8.GetBytes(checkString));
+            var computedHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+            var isValid = computedHash.Equals(receivedHash, StringComparison.OrdinalIgnoreCase);
+            
+            if (!isValid)
+            {
+                _logger.LogWarning("Login Widget validation failed. Expected: {Expected}, Received: {Received}", 
+                    computedHash, receivedHash);
+            }
+            else
+            {
+                _logger.LogInformation("Login Widget validation successful");
+            }
+
+            return isValid;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating Login Widget data");
+            return false;
+        }
+    }
 }

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api, type Track } from '../api/client';
 import { useTelegram } from '../hooks/useTelegram';
 import { formatDateTime } from '../utils/date';
+import ClientLayout from '../components/ClientLayout';
 
 const TrackDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -46,27 +47,32 @@ const TrackDetails = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-tg-button mx-auto mb-3" />
-          <p className="text-tg-hint text-sm">Loading track...</p>
+      <ClientLayout>
+        <div className="min-h-screen bg-tg-bg flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-tg-button mx-auto mb-3" />
+            <p className="text-tg-hint text-sm">Loading track...</p>
+          </div>
         </div>
-      </div>
+      </ClientLayout>
     );
   }
 
   if (error || !track) {
     return (
-      <div className="min-h-screen bg-tg-bg flex items-center justify-center px-6">
-        <p className="text-tg-hint text-sm text-center">
-          {error || 'Track not found'}
-        </p>
-      </div>
+      <ClientLayout>
+        <div className="min-h-screen bg-tg-bg flex items-center justify-center px-6">
+          <p className="text-tg-hint text-sm text-center">
+            {error || 'Track not found'}
+          </p>
+        </div>
+      </ClientLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-tg-bg flex flex-col">
+    <ClientLayout>
+      <div className="min-h-screen bg-tg-bg flex flex-col">
       <div className="p-6 pb-4">
         <p className="text-xs text-tg-hint mb-1">Tracking Number</p>
         <h1 className="text-2xl font-bold text-tg-text break-all">
@@ -161,6 +167,7 @@ const TrackDetails = () => {
         </div>
       </div>
     </div>
+    </ClientLayout>
   );
 };
 
