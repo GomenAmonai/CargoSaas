@@ -25,10 +25,10 @@ public class HttpContextTenantProvider : ITenantProvider
     {
         var httpContext = _httpContextAccessor.HttpContext;
 
-        // Если нет HttpContext (например, фоновые задачи)
+        // Если нет HttpContext (например, фоновые задачи, миграции, seed данные)
         if (httpContext == null)
         {
-            _logger.LogWarning("HttpContext is null. Returning empty TenantId");
+            _logger.LogDebug("HttpContext is null (expected in background services/migrations). Returning empty TenantId");
             return Guid.Empty;
         }
 

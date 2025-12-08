@@ -157,11 +157,26 @@ builder.Services.AddHostedService<TelegramBotBackgroundService>();
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
     ?? new[] { "http://localhost:5173", "http://localhost:3000" }; // Fallback для локальной разработки
 
+// Добавляем домены Telegram WebApp для production (если их еще нет в конфиге)
+var telegramWebAppOrigins = new[]
+{
+    "https://web.telegram.org",
+    "https://webk.telegram.org",
+    "https://webz.telegram.org"
+};
+
+// Объединяем все разрешенные домены (убираем дубликаты)
+var allAllowedOrigins = allowedOrigins
+    .Concat(telegramWebAppOrigins)
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Distinct()
+    .ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigins", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.WithOrigins(allAllowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials(); // Для JWT токенов
@@ -180,6 +195,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Логируем разрешенные CORS домены для отладки
+var corsLogger = app.Services.GetRequiredService<ILogger<Program>>();
+var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+corsLogger.LogInformation("CORS configured with {Count} origins from config: {Origins}", 
+    configuredOrigins.Length, string.Join(", ", configuredOrigins));
+corsLogger.LogInformation("Total allowed origins (including Telegram): {Count}", allAllowedOrigins.Length);
 
 // Auto-apply migrations and seed data
 using (var scope = app.Services.CreateScope())
@@ -251,6 +273,7 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 
 // CORS: для production используем белый список, для dev - разрешаем все
+// ВАЖНО: CORS должен быть ДО UseAuthentication и UseAuthorization
 var corsPolicy = app.Environment.IsDevelopment() ? "AllowAll" : "AllowSpecificOrigins";
 app.UseCors(corsPolicy);
 
